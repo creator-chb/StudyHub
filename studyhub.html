@@ -30,29 +30,61 @@ h2 {
 .card {
     background: #fff;
     border-radius: 12px;
-    padding: 20px;
+    padding: 24px;
     margin-bottom: 20px;
     box-shadow: 0 6px 16px rgba(0,0,0,0.08);
 }
 
-/* 输入区 */
-input, textarea, select {
+/* 卡片头部 */
+.card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+}
+
+.card-header h2 {
+    margin: 0;
+}
+
+/* 输入区（仅用于模态框内） */
+.modal-form input,
+.modal-form textarea,
+.modal-form select {
     width: 100%;
-    padding: 8px;
-    margin-top: 6px;
-    margin-bottom: 10px;
+    padding: 10px 12px;
+    margin-top: 4px;
+    margin-bottom: 14px;
     border-radius: 8px;
     border: 1px solid #ddd;
+    box-sizing: border-box;
+    font-size: 14px;
+    transition: border-color 0.2s;
+}
+
+.modal-form input:focus,
+.modal-form textarea:focus,
+.modal-form select:focus {
+    outline: none;
+    border-color: #4f8cff;
+    box-shadow: 0 0 0 3px rgba(79,140,255,0.15);
+}
+
+.modal-form label {
+    font-size: 13px;
+    font-weight: 600;
+    color: #555;
 }
 
 /* 按钮 */
 button {
-    padding: 6px 12px;
+    padding: 8px 16px;
     border: none;
     border-radius: 8px;
     cursor: pointer;
     background: #4f8cff;
     color: #fff;
+    font-size: 14px;
     transition: 0.2s;
 }
 
@@ -69,66 +101,213 @@ button:hover {
     background: #d64545;
 }
 
-/* =========================
-   链接池
-========================= */
-.link-item {
-    display: inline-block;
-    margin-right: 10px;
-    margin-bottom: 8px;
+/* 次要按钮（取消） */
+.btn-secondary {
+    background: #f0f2f5;
+    color: #555;
 }
 
-.link-text {
-    cursor: pointer;
+.btn-secondary:hover {
+    background: #e0e3e8;
+}
+
+/* =========================
+   链接展示区域
+========================= */
+.link-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 10px;
+    margin-top: 4px;
+}
+
+.link-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #f8f9ff;
+    border: 1px solid #e8ecf8;
+    border-radius: 10px;
+    padding: 10px 12px;
     transition: 0.2s;
 }
 
-.link-text:hover {
-    color: #007bff;
+.link-card:hover {
+    background: #eef1ff;
+    border-color: #c5cfff;
+    box-shadow: 0 2px 8px rgba(79,140,255,0.1);
+}
+
+.link-card-name {
+    flex: 1;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    color: #4f8cff;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    margin-right: 8px;
+}
+
+.link-card-name:hover {
     text-decoration: underline;
+}
+
+.link-card-actions {
+    display: flex;
+    gap: 4px;
+    flex-shrink: 0;
 }
 
 .small-btn {
     font-size: 12px;
-    margin-left: 4px;
+    padding: 4px 8px;
+    border-radius: 6px;
+}
+
+/* 空状态 */
+.empty-hint {
+    color: #aaa;
+    font-size: 13px;
+    padding: 16px 0;
+    text-align: center;
 }
 
 /* =========================
    任务卡片
 ========================= */
+.task-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 4px;
+}
+
 .task {
     border: 1px solid #eee;
     border-radius: 10px;
-    padding: 15px;
-    margin-bottom: 10px;
+    padding: 16px 18px;
     transition: 0.2s;
+    background: #fff;
 }
 
 .task:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+
+.task-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
 }
 
 .task-title {
-    font-size: 18px;
-    font-weight: bold;
+    font-size: 16px;
+    font-weight: 600;
+    color: #222;
 }
 
 .task-time {
-    color: #666;
-    margin: 5px 0;
+    color: #888;
+    font-size: 13px;
+    margin: 6px 0 10px;
 }
 
-.actions button {
-    margin-right: 6px;
+.task-time.urgent {
+    color: #ff5c5c;
+    font-weight: 600;
+}
+
+.task-links-preview {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 10px;
+}
+
+.task-link-chip {
+    background: #f0f4ff;
+    border: 1px solid #d0dcff;
+    color: #4f8cff;
+    border-radius: 20px;
+    font-size: 12px;
+    padding: 2px 10px;
+}
+
+.actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
 }
 
 .checkbox-group {
-    max-height: 120px;
+    max-height: 140px;
     overflow-y: auto;
     border: 1px solid #eee;
-    padding: 6px;
-    border-radius: 6px;
+    padding: 8px;
+    border-radius: 8px;
+    background: #fafafa;
+    margin-bottom: 14px;
+}
+
+.checkbox-group label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 0;
+    font-size: 13px;
+    cursor: pointer;
+}
+
+/* =========================
+   模态框
+========================= */
+.modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(0,0,0,0.4);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(2px);
+}
+
+.modal-overlay.active {
+    display: flex;
+}
+
+.modal-box {
+    background: #fff;
+    border-radius: 16px;
+    padding: 28px 32px;
+    width: 100%;
+    max-width: 480px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+    animation: modalIn 0.2s ease;
+}
+
+@keyframes modalIn {
+    from { opacity: 0; transform: translateY(-20px) scale(0.97); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.modal-title {
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 20px;
+    color: #222;
+}
+
+.modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 8px;
 }
 </style>
 </head>
@@ -141,35 +320,78 @@ button:hover {
          模块一：链接池
     ========================= -->
     <div class="card">
-        <h2>🔗 快速链接池</h2>
+        <div class="card-header">
+            <h2>🔗 快速链接池</h2>
+            <button onclick="openLinkModal()">+ 添加链接</button>
+        </div>
 
-        <input id="linkName" placeholder="备注名称">
-        <input id="linkUrl" placeholder="https://...">
-        <button onclick="addLink()">添加链接</button>
-
-        <div id="linkList"></div>
+        <div id="linkList" class="link-grid">
+            <div class="empty-hint">暂无链接，点击「添加链接」开始添加</div>
+        </div>
     </div>
 
     <!-- =========================
          模块二：任务
     ========================= -->
     <div class="card">
-        <h2>📋 任务管理</h2>
+        <div class="card-header">
+            <h2>📋 任务管理</h2>
+            <button onclick="openTaskModal()">+ 创建任务</button>
+        </div>
 
-        <input id="taskName" placeholder="任务名称">
-        <input id="taskTime" type="datetime-local">
-
-        <label>选择已有链接：</label>
-        <div id="linkCheckboxes" class="checkbox-group"></div>
-
-        <label>或手动输入链接（逗号或换行分隔）：</label>
-        <textarea id="manualLinks"></textarea>
-
-        <button onclick="addTask()">创建任务</button>
-
-        <div id="taskList"></div>
+        <div id="taskList" class="task-grid">
+            <div class="empty-hint">暂无任务，点击「创建任务」开始添加</div>
+        </div>
     </div>
 
+</div>
+
+<!-- =========================
+     模态框：添加/编辑链接
+========================= -->
+<div id="linkModal" class="modal-overlay" onclick="handleOverlayClick(event, 'linkModal')">
+    <div class="modal-box">
+        <div class="modal-title" id="linkModalTitle">添加链接</div>
+        <div class="modal-form">
+            <label>链接名称 *</label>
+            <input id="linkName" placeholder="例如：LeetCode 周赛" autocomplete="off">
+
+            <label>链接地址 *</label>
+            <input id="linkUrl" placeholder="https://..." autocomplete="off">
+        </div>
+        <div class="modal-footer">
+            <button class="btn-secondary" onclick="closeLinkModal()">取消</button>
+            <button onclick="confirmLink()">完成</button>
+        </div>
+    </div>
+</div>
+
+<!-- =========================
+     模态框：添加/编辑任务
+========================= -->
+<div id="taskModal" class="modal-overlay" onclick="handleOverlayClick(event, 'taskModal')">
+    <div class="modal-box">
+        <div class="modal-title" id="taskModalTitle">创建任务</div>
+        <div class="modal-form">
+            <label>任务名称 *</label>
+            <input id="taskName" placeholder="例如：提交作业" autocomplete="off">
+
+            <label>截止时间 *</label>
+            <input id="taskTime" type="datetime-local">
+
+            <label>关联链接（可多选）</label>
+            <div id="linkCheckboxes" class="checkbox-group">
+                <span style="color:#aaa;font-size:13px;">暂无可选链接</span>
+            </div>
+
+            <label>手动输入链接（逗号或换行分隔）</label>
+            <textarea id="manualLinks" rows="3" placeholder="https://example.com&#10;https://another.com"></textarea>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-secondary" onclick="closeTaskModal()">取消</button>
+            <button onclick="confirmTask()">完成</button>
+        </div>
+    </div>
 </div>
 
 <script>
@@ -178,6 +400,8 @@ button:hover {
 ========================= */
 let links = JSON.parse(localStorage.getItem("links")) || [];
 let tasks = JSON.parse(localStorage.getItem("tasks")) || [];
+let editingLinkId = null;
+let editingTaskId = null;
 
 function saveData() {
     localStorage.setItem("links", JSON.stringify(links));
@@ -185,147 +409,236 @@ function saveData() {
 }
 
 /* =========================
-   链接池
+   模态框通用工具
 ========================= */
-function addLink() {
-    const name = document.getElementById("linkName").value;
-    const url = document.getElementById("linkUrl").value;
-    if (!name || !url) return;
+function handleOverlayClick(event, modalId) {
+    if (event.target === document.getElementById(modalId)) {
+        if (modalId === "linkModal") closeLinkModal();
+        else if (modalId === "taskModal") closeTaskModal();
+    }
+}
 
-    links.push({ id: Date.now(), name, url });
+/* =========================
+   链接池 - 模态框
+========================= */
+function openLinkModal(id) {
+    editingLinkId = id || null;
+    const modal = document.getElementById("linkModal");
+    const title = document.getElementById("linkModalTitle");
+
+    if (id) {
+        const link = links.find(l => l.id === id);
+        title.textContent = "编辑链接";
+        document.getElementById("linkName").value = link.name;
+        document.getElementById("linkUrl").value = link.url;
+    } else {
+        title.textContent = "添加链接";
+        document.getElementById("linkName").value = "";
+        document.getElementById("linkUrl").value = "";
+    }
+
+    modal.classList.add("active");
+    setTimeout(() => document.getElementById("linkName").focus(), 50);
+}
+
+function closeLinkModal() {
+    document.getElementById("linkModal").classList.remove("active");
+    editingLinkId = null;
+}
+
+function confirmLink() {
+    const name = document.getElementById("linkName").value.trim();
+    const url = document.getElementById("linkUrl").value.trim();
+
+    if (!name) { alert("请填写链接名称"); return; }
+    if (!url || !/^https?:\/\/.+/.test(url)) { alert("请填写有效的链接地址（以 http:// 或 https:// 开头）"); return; }
+
+    if (editingLinkId) {
+        const link = links.find(l => l.id === editingLinkId);
+        link.name = name;
+        link.url = url;
+    } else {
+        links.push({ id: Date.now(), name, url });
+    }
+
     saveData();
     renderLinks();
+    closeLinkModal();
 }
 
 function deleteLink(id) {
+    if (!confirm("确定删除此链接？")) return;
     links = links.filter(l => l.id !== id);
     saveData();
     renderLinks();
 }
 
-function editLink(id) {
-    const link = links.find(l => l.id === id);
-    const name = prompt("修改名称", link.name);
-    const url = prompt("修改URL", link.url);
-    if (name && url) {
-        link.name = name;
-        link.url = url;
-        saveData();
-        renderLinks();
-    }
-}
-
 function renderLinks() {
     const list = document.getElementById("linkList");
-    const checkboxArea = document.getElementById("linkCheckboxes");
+
+    if (!links.length) {
+        list.innerHTML = '<div class="empty-hint">暂无链接，点击「添加链接」开始添加</div>';
+        renderLinkCheckboxes();
+        return;
+    }
 
     list.innerHTML = "";
-    checkboxArea.innerHTML = "";
-
     links.forEach(link => {
-        // 展示链接
         const div = document.createElement("div");
-        div.className = "link-item";
-
-        const span = document.createElement("span");
-        span.className = "link-text";
-        span.innerText = link.name;
-        span.onclick = () => window.open(link.url, "_blank");
-
-        div.appendChild(span);
-
-        // 编辑删除
-        div.innerHTML += `
-            <button class="small-btn" onclick="editLink(${link.id})">✏️</button>
-            <button class="small-btn btn-danger" onclick="deleteLink(${link.id})">🗑</button>
+        div.className = "link-card";
+        div.innerHTML = `
+            <span class="link-card-name" onclick="window.open('${escapeHtml(link.url)}', '_blank')" title="${escapeHtml(link.url)}">${escapeHtml(link.name)}</span>
+            <div class="link-card-actions">
+                <button class="small-btn" onclick="openLinkModal(${link.id})" title="编辑">✏️</button>
+                <button class="small-btn btn-danger" onclick="deleteLink(${link.id})" title="删除">🗑</button>
+            </div>
         `;
-
         list.appendChild(div);
+    });
 
-        // checkbox
+    renderLinkCheckboxes();
+}
+
+function renderLinkCheckboxes() {
+    const checkboxArea = document.getElementById("linkCheckboxes");
+    if (!links.length) {
+        checkboxArea.innerHTML = '<span style="color:#aaa;font-size:13px;">暂无可选链接</span>';
+        return;
+    }
+    checkboxArea.innerHTML = "";
+    links.forEach(link => {
         const label = document.createElement("label");
         label.innerHTML = `
-            <input type="checkbox" value="${link.url}">
-            ${link.name}
+            <input type="checkbox" value="${escapeHtml(link.url)}">
+            ${escapeHtml(link.name)}
         `;
         checkboxArea.appendChild(label);
     });
 }
 
 /* =========================
-   任务
+   任务 - 模态框
 ========================= */
-function addTask() {
-    const name = document.getElementById("taskName").value;
+function openTaskModal(id) {
+    editingTaskId = id || null;
+    const modal = document.getElementById("taskModal");
+    const title = document.getElementById("taskModalTitle");
+
+    renderLinkCheckboxes();
+
+    if (id) {
+        const task = tasks.find(t => t.id === id);
+        title.textContent = "编辑任务";
+        document.getElementById("taskName").value = task.name;
+        document.getElementById("taskTime").value = task.time;
+        document.getElementById("manualLinks").value = "";
+
+        // 恢复勾选状态
+        const checkboxes = document.querySelectorAll("#linkCheckboxes input[type=checkbox]");
+        checkboxes.forEach(cb => {
+            cb.checked = task.links.includes(cb.value);
+        });
+    } else {
+        title.textContent = "创建任务";
+        document.getElementById("taskName").value = "";
+        document.getElementById("taskTime").value = "";
+        document.getElementById("manualLinks").value = "";
+
+        const checkboxes = document.querySelectorAll("#linkCheckboxes input[type=checkbox]");
+        checkboxes.forEach(cb => { cb.checked = false; });
+    }
+
+    modal.classList.add("active");
+    setTimeout(() => document.getElementById("taskName").focus(), 50);
+}
+
+function closeTaskModal() {
+    document.getElementById("taskModal").classList.remove("active");
+    editingTaskId = null;
+}
+
+function confirmTask() {
+    const name = document.getElementById("taskName").value.trim();
     const time = document.getElementById("taskTime").value;
 
-    if (!name || !time) return;
+    if (!name) { alert("请填写任务名称"); return; }
+    if (!time) { alert("请选择截止时间"); return; }
 
-    // 选中的链接
     const selected = [...document.querySelectorAll("#linkCheckboxes input:checked")]
         .map(cb => cb.value);
 
-    // 手动输入
     const manual = document.getElementById("manualLinks").value
         .split(/[\n,]/)
         .map(s => s.trim())
         .filter(Boolean);
 
-    const allLinks = [...selected, ...manual];
+    const allLinks = [...new Set([...selected, ...manual])];
 
-    tasks.push({
-        id: Date.now(),
-        name,
-        time,
-        links: allLinks
-    });
+    if (editingTaskId) {
+        const task = tasks.find(t => t.id === editingTaskId);
+        task.name = name;
+        task.time = time;
+        task.links = allLinks;
+    } else {
+        tasks.push({ id: Date.now(), name, time, links: allLinks });
+    }
 
     saveData();
     renderTasks();
+    closeTaskModal();
 }
 
 function deleteTask(id) {
+    if (!confirm("确定删除此任务？")) return;
     tasks = tasks.filter(t => t.id !== id);
     saveData();
     renderTasks();
 }
 
-function editTask(id) {
-    const task = tasks.find(t => t.id === id);
-
-    const name = prompt("修改任务名", task.name);
-    const time = prompt("修改时间 (YYYY-MM-DDTHH:mm)", task.time);
-
-    if (name && time) {
-        task.name = name;
-        task.time = time;
-        saveData();
-        renderTasks();
-    }
-}
-
-function openLinks(links) {
-    links.forEach(url => window.open(url, "_blank"));
+function openLinks(linksArr) {
+    linksArr.forEach(url => window.open(url, "_blank"));
 }
 
 function renderTasks() {
     const list = document.getElementById("taskList");
 
-    // 按时间排序
+    if (!tasks.length) {
+        list.innerHTML = '<div class="empty-hint">暂无任务，点击「创建任务」开始添加</div>';
+        return;
+    }
+
     tasks.sort((a, b) => new Date(a.time) - new Date(b.time));
 
     list.innerHTML = "";
+    const now = new Date();
 
     tasks.forEach(task => {
+        const deadline = new Date(task.time);
+        const isUrgent = deadline - now < 24 * 60 * 60 * 1000 && deadline > now;
+        const isOverdue = deadline < now;
+
         const div = document.createElement("div");
         div.className = "task";
 
-        div.innerHTML = `
-            <div class="task-title">${task.name}</div>
-            <div class="task-time">截止时间：${formatTime(task.time)}</div>
+        const timeClass = (isUrgent || isOverdue) ? "task-time urgent" : "task-time";
+        const timePrefix = isOverdue ? "⚠️ 已逾期：" : "截止时间：";
 
+        const chipsHtml = task.links.length
+            ? task.links.map(url => {
+                const linkObj = links.find(l => l.url === url);
+                const label = linkObj ? escapeHtml(linkObj.name) : shortenUrl(url);
+                return `<span class="task-link-chip">${label}</span>`;
+              }).join("")
+            : "";
+
+        div.innerHTML = `
+            <div class="task-header">
+                <div class="task-title">${escapeHtml(task.name)}</div>
+            </div>
+            <div class="${timeClass}">${timePrefix}${formatTime(task.time)}</div>
+            ${chipsHtml ? `<div class="task-links-preview">${chipsHtml}</div>` : ""}
             <div class="actions">
-                <button onclick="editTask(${task.id})">编辑</button>
+                <button onclick="openTaskModal(${task.id})">编辑</button>
                 <button class="btn-danger" onclick="deleteTask(${task.id})">删除</button>
                 ${task.links.length ? `<button onclick='openLinks(${JSON.stringify(task.links)})'>一键跳转</button>` : ""}
             </div>
@@ -340,8 +653,35 @@ function renderTasks() {
 ========================= */
 function formatTime(t) {
     const d = new Date(t);
-    return d.toLocaleString();
+    return d.toLocaleString("zh-CN", { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" });
 }
+
+function escapeHtml(str) {
+    return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+}
+
+function shortenUrl(url) {
+    try {
+        return new URL(url).hostname;
+    } catch {
+        return url.slice(0, 30);
+    }
+}
+
+/* =========================
+   键盘快捷键（ESC 关闭弹窗）
+========================= */
+document.addEventListener("keydown", e => {
+    if (e.key === "Escape") {
+        closeLinkModal();
+        closeTaskModal();
+    }
+});
 
 /* =========================
    初始化
