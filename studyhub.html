@@ -522,6 +522,115 @@ button:hover {
     font-size: 12px;
     margin-top: 4px;
 }
+
+/* =========================
+   任务状态样式
+========================= */
+.task {
+    position: relative;
+}
+
+.task.completed {
+    opacity: 0.7;
+    background: #f8f9fa;
+}
+
+.task.completed .task-title {
+    text-decoration: line-through;
+    color: #888;
+}
+
+.task.completed .task-time {
+    color: #aaa;
+}
+
+.task.completed .task-link-chip {
+    opacity: 0.6;
+}
+
+.task-checkbox {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+    accent-color: #10b981;
+    flex-shrink: 0;
+}
+
+.task-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.task-header-left {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    flex: 1;
+}
+
+.task-status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.task-status-badge.completed {
+    background: #d1fae5;
+    color: #059669;
+}
+
+.task-status-badge.overdue {
+    background: #fee2e2;
+    color: #dc2626;
+}
+
+.task-status-badge.urgent {
+    background: #fef3c7;
+    color: #d97706;
+}
+
+.task-status-badge.pending {
+    background: #dbeafe;
+    color: #2563eb;
+}
+
+/* 已完成任务分区 */
+.completed-section {
+    margin-top: 24px;
+    padding-top: 24px;
+    border-top: 2px dashed #e5e7eb;
+}
+
+.completed-section-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #6b7280;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* 时间显示样式 */
+.task-time-remaining {
+    font-size: 12px;
+    font-weight: 500;
+    margin-top: 2px;
+}
+
+.task-time-remaining.urgent {
+    color: #f59e0b;
+}
+
+.task-time-remaining.overdue {
+    color: #ef4444;
+}
 </style>
 </head>
 
@@ -1207,55 +1316,168 @@ function renderTasks() {
         return;
     }
 
-    tasks.sort((a, b) => new Date(a.time) - new Date(b.time));
+    // 分离已完成和未完成任务
+    const pendingTasks = tasks.filter(t => !t.completed);
+    const completedTasks = tasks.filter(t => t.completed);
+    
+    // 未完成任务按截止时间排序（最早的在前）
+    pendingTasks.sort((a, b) => new Date(a.time) - new Date(b.time));
+    // 已完成任务按完成时间倒序（最近完成的在前）
+    completedTasks.sort((a, b) => new Date(b.completedAt || 0) - new Date(a.completedAt || 0));
 
     list.innerHTML = "";
-    const now = new Date();
-
-    tasks.forEach(task => {
-        const deadline = new Date(task.time);
-        const isUrgent = deadline - now < 24 * 60 * 60 * 1000 && deadline > now;
-        const isOverdue = deadline < now;
-
-        const div = document.createElement("div");
-        div.className = "task";
-
-        const timeClass = (isUrgent || isOverdue) ? "task-time urgent" : "task-time";
-        const timePrefix = isOverdue ? "⚠️ 已逾期：" : "截止时间：";
-
-        const chipsHtml = task.links.length
-            ? task.links.map(url => {
-                const linkObj = links.find(l => l.url === url);
-                const label = linkObj ? escapeHtml(linkObj.name) : shortenUrl(url);
-                return `<span class="task-link-chip">${label}</span>`;
-              }).join("")
-            : "";
-
-        div.innerHTML = `
-            <div class="task-header">
-                <div class="task-title">${escapeHtml(task.name)}</div>
-            </div>
-            <div class="${timeClass}">${timePrefix}${formatTime(task.time)}</div>
-            ${chipsHtml ? `<div class="task-links-preview">${chipsHtml}</div>` : ""}
-            <div class="actions">
-                <button onclick="openTaskModal(${task.id})">编辑</button>
-                <button class="btn-danger" onclick="deleteTask(${task.id})">删除</button>
-                ${task.links.length ? `<button onclick='openLinks(${JSON.stringify(task.links)})'>一键跳转</button>` : ""}
+    
+    // 渲染未完成任务
+    if (pendingTasks.length > 0) {
+        pendingTasks.forEach(task => renderTaskItem(task, list));
+    }
+    
+    // 渲染已完成任务分区
+    if (completedTasks.length > 0) {
+        const completedSection = document.createElement('div');
+        completedSection.className = 'completed-section';
+        completedSection.innerHTML = `
+            <div class="completed-section-title">
+                <span>✓</span>
+                <span>已完成 (${completedTasks.length})</span>
             </div>
         `;
+        
+        const completedList = document.createElement('div');
+        completedList.className = 'task-grid';
+        completedTasks.forEach(task => renderTaskItem(task, completedList));
+        completedSection.appendChild(completedList);
+        
+        list.appendChild(completedSection);
+    }
+}
 
-        list.appendChild(div);
-    });
+function renderTaskItem(task, container) {
+    const deadline = new Date(task.time);
+    const remaining = getRemainingTime(task.time);
+    const isCompleted = task.completed;
+    
+    const div = document.createElement("div");
+    div.className = isCompleted ? "task completed" : "task";
+    
+    // 状态徽章
+    let statusBadge = '';
+    if (isCompleted) {
+        statusBadge = '<span class="task-status-badge completed">✓ 已完成</span>';
+    } else if (remaining.overdue) {
+        statusBadge = '<span class="task-status-badge overdue">⚠ 已逾期</span>';
+    } else if (remaining.type === 'urgent') {
+        statusBadge = '<span class="task-status-badge urgent">⏰ 紧急</span>';
+    } else {
+        statusBadge = '<span class="task-status-badge pending">进行中</span>';
+    }
+
+    // 时间显示
+    let timeHtml = '';
+    if (isCompleted) {
+        timeHtml = `<div class="task-time">截止时间：${formatTime(task.time)}</div>`;
+    } else {
+        const remainingClass = remaining.type === 'overdue' ? 'overdue' : (remaining.type === 'urgent' ? 'urgent' : '');
+        timeHtml = `
+            <div class="task-time">截止时间：${formatTime(task.time)}</div>
+            <div class="task-time-remaining ${remainingClass}">${remaining.text}</div>
+        `;
+    }
+
+    const chipsHtml = task.links && task.links.length
+        ? task.links.map(url => {
+            const linkObj = links.find(l => l.url === url);
+            const label = linkObj ? escapeHtml(linkObj.name) : shortenUrl(url);
+            return `<span class="task-link-chip">${label}</span>`;
+          }).join("")
+        : "";
+
+    div.innerHTML = `
+        <div class="task-header">
+            <div class="task-header-left">
+                <input type="checkbox" class="task-checkbox" ${isCompleted ? 'checked' : ''} 
+                       onchange="toggleTaskComplete(${task.id})" title="${isCompleted ? '标记为未完成' : '标记为已完成'}">
+                <div>
+                    <div class="task-title">${escapeHtml(task.name)} ${statusBadge}</div>
+                    ${timeHtml}
+                </div>
+            </div>
+        </div>
+        ${chipsHtml ? `<div class="task-links-preview">${chipsHtml}</div>` : ""}
+        <div class="actions">
+            <button onclick="openTaskModal(${task.id})">编辑</button>
+            <button class="btn-danger" onclick="deleteTask(${task.id})">删除</button>
+            ${task.links && task.links.length ? `<button onclick='openLinks(${JSON.stringify(task.links)})'>一键跳转</button>` : ""}
+        </div>
+    `;
+
+    container.appendChild(div);
 }
 
 /* =========================
-   工具函数
+   时间计算工具
 ========================= */
 function formatTime(t) {
     const d = new Date(t);
     return d.toLocaleString("zh-CN", { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" });
 }
 
+// 计算剩余时间
+function getRemainingTime(deadline) {
+    const now = new Date();
+    const end = new Date(deadline);
+    const diff = end - now;
+    
+    if (diff < 0) {
+        // 已逾期
+        const overdueDiff = Math.abs(diff);
+        const days = Math.floor(overdueDiff / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((overdueDiff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        
+        if (days > 0) {
+            return { text: `已逾期 ${days} 天${hours > 0 ? ' ' + hours + ' 小时' : ''}`, type: 'overdue', overdue: true, days };
+        } else if (hours > 0) {
+            return { text: `已逾期 ${hours} 小时`, type: 'overdue', overdue: true, days: 0 };
+        } else {
+            return { text: '已逾期', type: 'overdue', overdue: true, days: 0 };
+        }
+    }
+    
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    
+    if (days > 0) {
+        return { text: `剩余 ${days} 天 ${hours} 小时`, type: days <= 1 ? 'urgent' : 'normal', overdue: false };
+    } else if (hours > 0) {
+        return { text: `剩余 ${hours} 小时 ${minutes} 分钟`, type: 'urgent', overdue: false };
+    } else if (minutes > 0) {
+        return { text: `剩余 ${minutes} 分钟`, type: 'urgent', overdue: false };
+    } else {
+        return { text: '即将到期', type: 'urgent', overdue: false };
+    }
+}
+
+// 切换任务完成状态
+function toggleTaskComplete(taskId) {
+    const task = tasks.find(t => t.id === taskId);
+    if (task) {
+        task.completed = !task.completed;
+        task.completedAt = task.completed ? new Date().toISOString() : null;
+        saveData();
+        renderTasks();
+        
+        if (task.completed) {
+            Toast.success('任务已完成！');
+        } else {
+            Toast.info('任务已恢复为进行中');
+        }
+    }
+}
+
+/* =========================
+   工具函数
+========================= */
 function escapeHtml(str) {
     return String(str)
         .replace(/&/g, "&amp;")
