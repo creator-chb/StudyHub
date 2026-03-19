@@ -3,6 +3,8 @@
 一个基于浏览器的轻量级学习任务管理工具，帮助你高效管理学习链接和任务计划。
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/chb/StudyHub)
+[![Status](https://img.shields.io/badge/status-active-green.svg)](https://github.com/chb/StudyHub)
 
 ## 📖 项目简介
 
@@ -76,8 +78,13 @@ python -m http.server 8080
 
 ```
 StudyHub/
-├── studyhub.html      # 主页面文件（包含所有 HTML、CSS、JS）
-└── README.md          # 项目说明文档
+├── docs/                    # 项目文档
+│   ├── roadmap.md          # 发展规划
+│   └── changelog.md        # 更新日志
+├── legacy/                  # 旧版本代码（保留）
+│   └── studyhub.html
+├── studyhub.html           # 当前版本（v1.0）
+└── README.md               # 项目说明
 ```
 
 ## 🎯 功能树
@@ -145,6 +152,49 @@ MIT License - 详见 [LICENSE](LICENSE) 文件
 - 作者：chb
 - Email: 2956529037@qq.com
 
+## 🚧 开发路线图
+
+### ✅ v1.0 - 纯前端版本（当前）
+**状态：** 稳定运行  
+**特性：**
+- 基于 localStorage 的数据存储
+- 链接池管理
+- 任务管理与时间排序
+- 一键跳转功能
+- 零依赖，开箱即用
+
+**待优化项：**
+- [ ] 数据导入/导出功能
+- [ ] 任务分类与标签系统
+- [ ] 搜索和过滤功能
+- [ ] 更丰富的主题配置
+
+### 🚧 v2.0 - 前后端分离版本（规划中）
+**预计启动时间：** 2026 年 Q2  
+**技术栈选型：**
+```
+前端：Vue.js 3 / React + Vite
+后端：Node.js + Express / Python + FastAPI
+数据库：MongoDB / MySQL
+认证：JWT Token
+部署：Docker + Docker Compose
+```
+
+**核心特性：**
+- [ ] 用户注册与登录系统
+- [ ] 云端数据同步
+- [ ] 多设备协作
+- [ ] RESTful API 接口
+- [ ] 技能库管理
+- [ ] 智能体流程编排
+- [ ] 数据统计与分析
+
+### 🔮 未来展望
+- AI 辅助学习计划生成
+- 学习进度追踪与可视化
+- 团队协作功能
+- 第三方服务集成
+
 ## 🙏 致谢
 
 感谢所有为本项目做出贡献的开发者！
@@ -152,3 +202,5 @@ MIT License - 详见 [LICENSE](LICENSE) 文件
 ---
 
 **Enjoy Learning! 🎓**
+
+> 💡 **提示：** 本项目正在从纯前端版本向全栈版本演进。如果你对项目发展有任何建议，欢迎在 Issues 中提出！
