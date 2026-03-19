@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>作业管理 Dashboard</title>
+
+<style>
+/* =========================
+   全局样式
+========================= */
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    margin: 0;
+    background: #f5f7fa;
+    color: #333;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 30px auto;
+    padding: 20px;
+}
+
+/* 标题 */
+h2 {
+    margin-bottom: 10px;
+}
+
+/* 卡片 */
+.card {
+    background: #fff;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 6px 16px rgba(0,0,0,0.08);
+}
+
+/* 输入区 */
+input, textarea, select {
+    width: 100%;
+    padding: 8px;
+    margin-top: 6px;
+    margin-bottom: 10px;
+    border-radius: 8px;
+    border: 1px solid #ddd;
+}
+
+/* 按钮 */
+button {
+    padding: 6px 12px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    background: #4f8cff;
+    color: #fff;
+    transition: 0.2s;
+}
+
+button:hover {
+    background: #3b6fdc;
+}
+
+/* 删除按钮 */
+.btn-danger {
+    background: #ff5c5c;
+}
+
+.btn-danger:hover {
+    background: #d64545;
+}
+
+/* =========================
+   链接池
+========================= */
+.link-item {
+    display: inline-block;
+    margin-right: 10px;
+    margin-bottom: 8px;
+}
+
+.link-text {
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.link-text:hover {
+    color: #007bff;
+    text-decoration: underline;
+}
+
+.small-btn {
+    font-size: 12px;
+    margin-left: 4px;
+}
+
+/* =========================
+   任务卡片
+========================= */
+.task {
+    border: 1px solid #eee;
+    border-radius: 10px;
+    padding: 15px;
+    margin-bottom: 10px;
+    transition: 0.2s;
+}
+
+.task:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+}
+
+.task-title {
+    font-size: 18px;
+    font-weight: bold;
+}
+
+.task-time {
+    color: #666;
+    margin: 5px 0;
+}
+
+.actions button {
+    margin-right: 6px;
+}
+
+.checkbox-group {
+    max-height: 120px;
+    overflow-y: auto;
+    border: 1px solid #eee;
+    padding: 6px;
+    border-radius: 6px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <!-- =========================
+         模块一：链接池
+    ========================= -->
+    <div class="card">
+        <h2>🔗 快速链接池</h2>
+
+        <input id="linkName" placeholder="备注名称">
+        <input id="linkUrl" placeholder="https://...">
+        <button onclick="addLink()">添加链接</button>
+
+        <div id="linkList"></div>
+    </div>
+
+    <!-- =========================
+         模块二：任务
+    ========================= -->
+    <div class="card">
+        <h2>📋 任务管理</h2>
+
+        <input id="taskName" placeholder="任务名称">
+        <input id="taskTime" type="datetime-local">
+
+        <label>选择已有链接：</label>
+        <div id="linkCheckboxes" class="checkbox-group"></div>
+
+        <label>或手动输入链接（逗号或换行分隔）：</label>
+        <textarea id="manualLinks"></textarea>
+
+        <button onclick="addTask()">创建任务</button>
+
+        <div id="taskList"></div>
+    </div>
+
+</div>
+
+<script>
+/* =========================
+   数据管理
+========================= */
+let links = JSON.parse(localStorage.getItem("links")) || [];
+let tasks = JSON.parse(localStorage.getItem("tasks")) || [];
+
+function saveData() {
+    localStorage.setItem("links", JSON.stringify(links));
+    localStorage.setItem("tasks", JSON.stringify(tasks));
+}
+
+/* =========================
+   链接池
+========================= */
+function addLink() {
+    const name = document.getElementById("linkName").value;
+    const url = document.getElementById("linkUrl").value;
+    if (!name || !url) return;
+
+    links.push({ id: Date.now(), name, url });
+    saveData();
+    renderLinks();
+}
+
+function deleteLink(id) {
+    links = links.filter(l => l.id !== id);
+    saveData();
+    renderLinks();
+}
+
+function editLink(id) {
+    const link = links.find(l => l.id === id);
+    const name = prompt("修改名称", link.name);
+    const url = prompt("修改URL", link.url);
+    if (name && url) {
+        link.name = name;
+        link.url = url;
+        saveData();
+        renderLinks();
+    }
+}
+
+function renderLinks() {
+    const list = document.getElementById("linkList");
+    const checkboxArea = document.getElementById("linkCheckboxes");
+
+    list.innerHTML = "";
+    checkboxArea.innerHTML = "";
+
+    links.forEach(link => {
+        // 展示链接
+        const div = document.createElement("div");
+        div.className = "link-item";
+
+        const span = document.createElement("span");
+        span.className = "link-text";
+        span.innerText = link.name;
+        span.onclick = () => window.open(link.url, "_blank");
+
+        div.appendChild(span);
+
+        // 编辑删除
+        div.innerHTML += `
+            <button class="small-btn" onclick="editLink(${link.id})">✏️</button>
+            <button class="small-btn btn-danger" onclick="deleteLink(${link.id})">🗑</button>
+        `;
+
+        list.appendChild(div);
+
+        // checkbox
+        const label = document.createElement("label");
+        label.innerHTML = `
+            <input type="checkbox" value="${link.url}">
+            ${link.name}
+        `;
+        checkboxArea.appendChild(label);
+    });
+}
+
+/* =========================
+   任务
+========================= */
+function addTask() {
+    const name = document.getElementById("taskName").value;
+    const time = document.getElementById("taskTime").value;
+
+    if (!name || !time) return;
+
+    // 选中的链接
+    const selected = [...document.querySelectorAll("#linkCheckboxes input:checked")]
+        .map(cb => cb.value);
+
+    // 手动输入
+    const manual = document.getElementById("manualLinks").value
+        .split(/[\n,]/)
+        .map(s => s.trim())
+        .filter(Boolean);
+
+    const allLinks = [...selected, ...manual];
+
+    tasks.push({
+        id: Date.now(),
+        name,
+        time,
+        links: allLinks
+    });
+
+    saveData();
+    renderTasks();
+}
+
+function deleteTask(id) {
+    tasks = tasks.filter(t => t.id !== id);
+    saveData();
+    renderTasks();
+}
+
+function editTask(id) {
+    const task = tasks.find(t => t.id === id);
+
+    const name = prompt("修改任务名", task.name);
+    const time = prompt("修改时间 (YYYY-MM-DDTHH:mm)", task.time);
+
+    if (name && time) {
+        task.name = name;
+        task.time = time;
+        saveData();
+        renderTasks();
+    }
+}
+
+function openLinks(links) {
+    links.forEach(url => window.open(url, "_blank"));
+}
+
+function renderTasks() {
+    const list = document.getElementById("taskList");
+
+    // 按时间排序
+    tasks.sort((a, b) => new Date(a.time) - new Date(b.time));
+
+    list.innerHTML = "";
+
+    tasks.forEach(task => {
+        const div = document.createElement("div");
+        div.className = "task";
+
+        div.innerHTML = `
+            <div class="task-title">${task.name}</div>
+            <div class="task-time">截止时间：${formatTime(task.time)}</div>
+
+            <div class="actions">
+                <button onclick="editTask(${task.id})">编辑</button>
+                <button class="btn-danger" onclick="deleteTask(${task.id})">删除</button>
+                ${task.links.length ? `<button onclick='openLinks(${JSON.stringify(task.links)})'>一键跳转</button>` : ""}
+            </div>
+        `;
+
+        list.appendChild(div);
+    });
+}
+
+/* =========================
+   工具函数
+========================= */
+function formatTime(t) {
+    const d = new Date(t);
+    return d.toLocaleString();
+}
+
+/* =========================
+   初始化
+========================= */
+renderLinks();
+renderTasks();
+
+</script>
+
+</body>
+</html>
