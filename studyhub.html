@@ -631,6 +631,136 @@ button:hover {
 .task-time-remaining.overdue {
     color: #ef4444;
 }
+
+/* =========================
+   数据管理样式
+========================= */
+.data-actions {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+}
+
+.btn-export {
+    background: #10b981;
+}
+
+.btn-export:hover {
+    background: #059669;
+}
+
+.btn-import {
+    background: #f59e0b;
+}
+
+.btn-import:hover {
+    background: #d97706;
+}
+
+.data-stats {
+    background: #f8fafc;
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-size: 13px;
+    color: #64748b;
+}
+
+.data-stats-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-right: 20px;
+}
+
+.data-stats-item strong {
+    color: #334155;
+    font-size: 16px;
+}
+
+/* 导入预览 */
+.import-preview {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 12px;
+    margin-top: 12px;
+}
+
+.preview-title {
+    font-weight: 600;
+    font-size: 13px;
+    color: #475569;
+    margin-bottom: 8px;
+}
+
+.preview-content {
+    font-size: 13px;
+    color: #64748b;
+}
+
+.preview-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 4px 0;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.preview-item:last-child {
+    border-bottom: none;
+}
+
+.preview-label {
+    color: #94a3b8;
+}
+
+.preview-value {
+    color: #334155;
+    font-weight: 500;
+}
+
+/* 备份提醒 */
+.backup-reminder {
+    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+    border: 1px solid #f59e0b;
+    border-radius: 10px;
+    padding: 16px;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.backup-reminder-content {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.backup-reminder-icon {
+    font-size: 24px;
+}
+
+.backup-reminder-text {
+    font-size: 14px;
+    color: #92400e;
+}
+
+.backup-reminder-title {
+    font-weight: 600;
+    margin-bottom: 2px;
+}
+
+.backup-reminder-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.btn-small {
+    padding: 6px 12px;
+    font-size: 12px;
+}
 </style>
 </head>
 
@@ -664,6 +794,21 @@ button:hover {
         <div id="taskList" class="task-grid">
             <div class="empty-hint">暂无任务，点击「创建任务」开始添加</div>
         </div>
+    </div>
+
+    <!-- =========================
+         模块三：数据管理
+    ========================= -->
+    <div class="card">
+        <div class="card-header">
+            <h2>💾 数据管理</h2>
+        </div>
+        <div class="data-actions">
+            <button onclick="exportData()" class="btn-export">📤 导出数据</button>
+            <button onclick="openImportModal()" class="btn-import">📥 导入数据</button>
+            <button onclick="clearAllData()" class="btn-danger">🗑️ 清空全部数据</button>
+        </div>
+        <div class="data-stats" id="dataStats"></div>
     </div>
 
 </div>
@@ -736,6 +881,37 @@ button:hover {
 </div>
 
 <!-- =========================
+     模态框：导入数据
+========================= -->
+<div id="importModal" class="modal-overlay" onclick="handleOverlayClick(event, 'importModal')">
+    <div class="modal-box">
+        <div class="modal-title">导入数据</div>
+        <div class="modal-form">
+            <div class="form-group">
+                <label>选择 JSON 文件</label>
+                <input type="file" id="importFile" accept=".json" onchange="handleImportFileSelect()">
+                <div class="field-hint">支持从本应用导出的 JSON 文件</div>
+            </div>
+            <div class="form-group">
+                <label>冲突处理策略</label>
+                <select id="importConflictStrategy">
+                    <option value="skip">跳过重复项（保留现有数据）</option>
+                    <option value="overwrite">覆盖重复项（使用导入的数据）</option>
+                </select>
+            </div>
+            <div id="importPreview" class="import-preview" style="display:none;">
+                <div class="preview-title">数据预览</div>
+                <div class="preview-content" id="importPreviewContent"></div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-secondary" onclick="closeImportModal()">取消</button>
+            <button onclick="confirmImport()" id="confirmImportBtn" disabled>确认导入</button>
+        </div>
+    </div>
+</div>
+
+<!-- =========================
      Toast 通知容器
 ========================= -->
 <div id="toastContainer" class="toast-container"></div>
@@ -764,10 +940,312 @@ let links = JSON.parse(localStorage.getItem("links")) || [];
 let tasks = JSON.parse(localStorage.getItem("tasks")) || [];
 let editingLinkId = null;
 let editingTaskId = null;
+let importDataCache = null; // 缓存导入的数据
+
+// 数据版本号，用于导入时校验
+const DATA_VERSION = "1.0";
 
 function saveData() {
     localStorage.setItem("links", JSON.stringify(links));
     localStorage.setItem("tasks", JSON.stringify(tasks));
+    updateDataStats();
+    checkBackupReminder();
+}
+
+// 更新数据统计
+function updateDataStats() {
+    const statsEl = document.getElementById('dataStats');
+    if (!statsEl) return;
+    
+    const totalLinks = links.length;
+    const totalTasks = tasks.length;
+    const completedTasks = tasks.filter(t => t.completed).length;
+    const pendingTasks = totalTasks - completedTasks;
+    
+    // 计算数据大小（近似值）
+    const dataSize = JSON.stringify({ links, tasks }).length;
+    const sizeKB = (dataSize / 1024).toFixed(1);
+    
+    statsEl.innerHTML = `
+        <span class="data-stats-item">🔗 链接: <strong>${totalLinks}</strong></span>
+        <span class="data-stats-item">📋 任务: <strong>${totalTasks}</strong> (${completedTasks} 已完成, ${pendingTasks} 进行中)</span>
+        <span class="data-stats-item">💾 数据大小: <strong>${sizeKB} KB</strong></span>
+    `;
+}
+
+// 导出数据
+function exportData() {
+    const exportObj = {
+        version: DATA_VERSION,
+        exportTime: new Date().toISOString(),
+        links: links,
+        tasks: tasks
+    };
+    
+    const dataStr = JSON.stringify(exportObj, null, 2);
+    const blob = new Blob([dataStr], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `studyhub_backup_${formatDateForFile(new Date())}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    // 记录导出时间
+    localStorage.setItem('lastExportTime', new Date().toISOString());
+    
+    Toast.success('数据导出成功！');
+}
+
+function formatDateForFile(date) {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    const h = String(date.getHours()).padStart(2, '0');
+    const min = String(date.getMinutes()).padStart(2, '0');
+    return `${y}${m}${d}_${h}${min}`;
+}
+
+// 导入数据 - 打开模态框
+function openImportModal() {
+    importDataCache = null;
+    document.getElementById('importFile').value = '';
+    document.getElementById('importConflictStrategy').value = 'skip';
+    document.getElementById('importPreview').style.display = 'none';
+    document.getElementById('confirmImportBtn').disabled = true;
+    document.getElementById('importModal').classList.add('active');
+}
+
+function closeImportModal() {
+    document.getElementById('importModal').classList.remove('active');
+    importDataCache = null;
+}
+
+// 处理文件选择
+function handleImportFileSelect() {
+    const fileInput = document.getElementById('importFile');
+    const file = fileInput.files[0];
+    
+    if (!file) {
+        document.getElementById('importPreview').style.display = 'none';
+        document.getElementById('confirmImportBtn').disabled = true;
+        return;
+    }
+    
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        try {
+            const data = JSON.parse(e.target.result);
+            
+            // 校验数据格式
+            if (!validateImportData(data)) {
+                Toast.error('文件格式不正确，请上传有效的 StudyHub 备份文件');
+                fileInput.value = '';
+                return;
+            }
+            
+            importDataCache = data;
+            showImportPreview(data);
+            document.getElementById('confirmImportBtn').disabled = false;
+        } catch (err) {
+            Toast.error('无法解析文件，请确保是有效的 JSON 格式');
+            fileInput.value = '';
+        }
+    };
+    reader.readAsText(file);
+}
+
+// 校验导入数据
+function validateImportData(data) {
+    // 检查基本结构
+    if (!data || typeof data !== 'object') return false;
+    if (!Array.isArray(data.links) || !Array.isArray(data.tasks)) return false;
+    
+    // 检查链接数据
+    for (const link of data.links) {
+        if (!link.id || !link.name || !link.url) return false;
+    }
+    
+    // 检查任务数据
+    for (const task of data.tasks) {
+        if (!task.id || !task.name || !task.time) return false;
+    }
+    
+    return true;
+}
+
+// 显示导入预览
+function showImportPreview(data) {
+    const previewEl = document.getElementById('importPreview');
+    const contentEl = document.getElementById('importPreviewContent');
+    
+    const newLinks = data.links.length;
+    const newTasks = data.tasks.length;
+    
+    // 计算冲突
+    const existingLinkIds = new Set(links.map(l => l.id));
+    const existingTaskIds = new Set(tasks.map(t => t.id));
+    
+    const linkConflicts = data.links.filter(l => existingLinkIds.has(l.id)).length;
+    const taskConflicts = data.tasks.filter(t => existingTaskIds.has(t.id)).length;
+    
+    contentEl.innerHTML = `
+        <div class="preview-item">
+            <span class="preview-label">链接数量</span>
+            <span class="preview-value">${newLinks} 个${linkConflicts > 0 ? ` (${linkConflicts} 个冲突)` : ''}</span>
+        </div>
+        <div class="preview-item">
+            <span class="preview-label">任务数量</span>
+            <span class="preview-value">${newTasks} 个${taskConflicts > 0 ? ` (${taskConflicts} 个冲突)` : ''}</span>
+        </div>
+        <div class="preview-item">
+            <span class="preview-label">导出时间</span>
+            <span class="preview-value">${data.exportTime ? formatTime(data.exportTime) : '未知'}</span>
+        </div>
+    `;
+    
+    previewEl.style.display = 'block';
+}
+
+// 确认导入
+async function confirmImport() {
+    if (!importDataCache) return;
+    
+    const strategy = document.getElementById('importConflictStrategy').value;
+    const data = importDataCache;
+    
+    // 统计信息
+    let linksAdded = 0, linksSkipped = 0, linksOverwritten = 0;
+    let tasksAdded = 0, tasksSkipped = 0, tasksOverwritten = 0;
+    
+    const existingLinkIds = new Set(links.map(l => l.id));
+    const existingTaskIds = new Set(tasks.map(t => t.id));
+    
+    // 处理链接
+    for (const link of data.links) {
+        if (existingLinkIds.has(link.id)) {
+            if (strategy === 'overwrite') {
+                const idx = links.findIndex(l => l.id === link.id);
+                links[idx] = link;
+                linksOverwritten++;
+            } else {
+                linksSkipped++;
+            }
+        } else {
+            links.push(link);
+            linksAdded++;
+        }
+    }
+    
+    // 处理任务
+    for (const task of data.tasks) {
+        if (existingTaskIds.has(task.id)) {
+            if (strategy === 'overwrite') {
+                const idx = tasks.findIndex(t => t.id === task.id);
+                tasks[idx] = task;
+                tasksOverwritten++;
+            } else {
+                tasksSkipped++;
+            }
+        } else {
+            tasks.push(task);
+            tasksAdded++;
+        }
+    }
+    
+    saveData();
+    renderLinks();
+    renderTasks();
+    closeImportModal();
+    
+    // 显示结果
+    const messages = [];
+    if (linksAdded > 0) messages.push(`新增 ${linksAdded} 个链接`);
+    if (linksOverwritten > 0) messages.push(`覆盖 ${linksOverwritten} 个链接`);
+    if (linksSkipped > 0) messages.push(`跳过 ${linksSkipped} 个链接`);
+    if (tasksAdded > 0) messages.push(`新增 ${tasksAdded} 个任务`);
+    if (tasksOverwritten > 0) messages.push(`覆盖 ${tasksOverwritten} 个任务`);
+    if (tasksSkipped > 0) messages.push(`跳过 ${tasksSkipped} 个任务`);
+    
+    Toast.success(`导入成功！${messages.join('，')}`);
+}
+
+// 清空全部数据
+async function clearAllData() {
+    const result = await showConfirm({
+        icon: '⚠️',
+        title: '清空全部数据',
+        message: '此操作将删除所有链接和任务，且无法恢复。请输入 "DELETE" 确认操作。',
+        confirmText: '确认清空',
+        cancelText: '取消',
+        isDanger: true,
+        requireInput: true,
+        inputPlaceholder: '请输入 DELETE 确认'
+    });
+    
+    if (!result.confirmed) return;
+    
+    if (result.inputValue !== 'DELETE') {
+        Toast.error('输入不正确，操作已取消');
+        return;
+    }
+    
+    links = [];
+    tasks = [];
+    saveData();
+    renderLinks();
+    renderTasks();
+    
+    Toast.success('所有数据已清空');
+}
+
+// 检查是否需要备份提醒
+function checkBackupReminder() {
+    const totalItems = links.length + tasks.length;
+    const lastExport = localStorage.getItem('lastExportTime');
+    const reminderDismissed = localStorage.getItem('backupReminderDismissed');
+    
+    // 如果有数据且没有导出过，或者数据量超过阈值
+    if (totalItems >= 5 && (!lastExport || reminderDismissed !== 'true')) {
+        showBackupReminder();
+    }
+}
+
+// 显示备份提醒
+function showBackupReminder() {
+    // 检查是否已存在提醒
+    if (document.getElementById('backupReminder')) return;
+    
+    const container = document.querySelector('.container');
+    const reminder = document.createElement('div');
+    reminder.id = 'backupReminder';
+    reminder.className = 'backup-reminder';
+    reminder.innerHTML = `
+        <div class="backup-reminder-content">
+            <span class="backup-reminder-icon">💡</span>
+            <div class="backup-reminder-text">
+                <div class="backup-reminder-title">建议备份数据</div>
+                <div>您的数据量已增长，建议导出备份以防数据丢失。</div>
+            </div>
+        </div>
+        <div class="backup-reminder-actions">
+            <button class="btn-small btn-export" onclick="exportData(); dismissBackupReminder();">立即备份</button>
+            <button class="btn-small btn-secondary" onclick="dismissBackupReminder()">稍后再说</button>
+        </div>
+    `;
+    
+    container.insertBefore(reminder, container.firstChild);
+}
+
+function dismissBackupReminder() {
+    localStorage.setItem('backupReminderDismissed', 'true');
+    const reminder = document.getElementById('backupReminder');
+    if (reminder) {
+        reminder.remove();
+    }
 }
 
 /* =========================
@@ -1524,6 +2002,8 @@ document.addEventListener("keydown", e => {
 ========================= */
 renderLinks();
 renderTasks();
+updateDataStats();
+checkBackupReminder();
 
 </script>
 
