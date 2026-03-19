@@ -454,6 +454,74 @@ button:hover {
     border-color: #4f8cff;
     box-shadow: 0 0 0 3px rgba(79,140,255,0.15);
 }
+
+/* =========================
+   表单校验样式
+========================= */
+.form-group {
+    margin-bottom: 16px;
+}
+
+.form-group label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: #555;
+    margin-bottom: 6px;
+}
+
+.form-group input,
+.form-group textarea,
+.form-group select {
+    width: 100%;
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: 1px solid #ddd;
+    box-sizing: border-box;
+    font-size: 14px;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.form-group input:focus,
+.form-group textarea:focus,
+.form-group select:focus {
+    outline: none;
+    border-color: #4f8cff;
+    box-shadow: 0 0 0 3px rgba(79,140,255,0.15);
+}
+
+.form-group input.error,
+.form-group textarea.error,
+.form-group select.error {
+    border-color: #ef4444;
+    box-shadow: 0 0 0 3px rgba(239,68,68,0.15);
+}
+
+.form-group input.success,
+.form-group textarea.success,
+.form-group select.success {
+    border-color: #10b981;
+    box-shadow: 0 0 0 3px rgba(16,185,129,0.15);
+}
+
+.error-message {
+    color: #ef4444;
+    font-size: 12px;
+    margin-top: 4px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.error-message::before {
+    content: '⚠';
+}
+
+.field-hint {
+    color: #888;
+    font-size: 12px;
+    margin-top: 4px;
+}
 </style>
 </head>
 
@@ -498,11 +566,18 @@ button:hover {
     <div class="modal-box">
         <div class="modal-title" id="linkModalTitle">添加链接</div>
         <div class="modal-form">
-            <label>链接名称 *</label>
-            <input id="linkName" placeholder="例如：LeetCode 周赛" autocomplete="off">
+            <div class="form-group">
+                <label>链接名称 *</label>
+                <input id="linkName" placeholder="例如：LeetCode 周赛" autocomplete="off" onblur="validateLinkName()">
+                <div class="error-message" id="linkNameError" style="display:none;"></div>
+            </div>
 
-            <label>链接地址 *</label>
-            <input id="linkUrl" placeholder="https://..." autocomplete="off">
+            <div class="form-group">
+                <label>链接地址 *</label>
+                <input id="linkUrl" placeholder="https://..." autocomplete="off" onblur="validateLinkUrl()">
+                <div class="error-message" id="linkUrlError" style="display:none;"></div>
+                <div class="field-hint">必须以 http:// 或 https:// 开头</div>
+            </div>
         </div>
         <div class="modal-footer">
             <button class="btn-secondary" onclick="closeLinkModal()">取消</button>
@@ -518,19 +593,31 @@ button:hover {
     <div class="modal-box">
         <div class="modal-title" id="taskModalTitle">创建任务</div>
         <div class="modal-form">
-            <label>任务名称 *</label>
-            <input id="taskName" placeholder="例如：提交作业" autocomplete="off">
-
-            <label>截止时间 *</label>
-            <input id="taskTime" type="datetime-local">
-
-            <label>关联链接（可多选）</label>
-            <div id="linkCheckboxes" class="checkbox-group">
-                <span style="color:#aaa;font-size:13px;">暂无可选链接</span>
+            <div class="form-group">
+                <label>任务名称 *</label>
+                <input id="taskName" placeholder="例如：提交作业" autocomplete="off" onblur="validateTaskName()">
+                <div class="error-message" id="taskNameError" style="display:none;"></div>
             </div>
 
-            <label>手动输入链接（逗号或换行分隔）</label>
-            <textarea id="manualLinks" rows="3" placeholder="https://example.com&#10;https://another.com"></textarea>
+            <div class="form-group">
+                <label>截止时间 *</label>
+                <input id="taskTime" type="datetime-local" onblur="validateTaskTime()">
+                <div class="error-message" id="taskTimeError" style="display:none;"></div>
+                <div class="field-hint" id="taskTimeHint">请选择未来的时间</div>
+            </div>
+
+            <div class="form-group">
+                <label>关联链接（可多选）</label>
+                <div id="linkCheckboxes" class="checkbox-group">
+                    <span style="color:#aaa;font-size:13px;">暂无可选链接</span>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>手动输入链接（逗号或换行分隔）</label>
+                <textarea id="manualLinks" rows="3" placeholder="https://example.com&#10;https://another.com"></textarea>
+                <div class="field-hint">每行一个链接，或逗号分隔</div>
+            </div>
         </div>
         <div class="modal-footer">
             <button class="btn-secondary" onclick="closeTaskModal()">取消</button>
@@ -724,6 +811,142 @@ function handleConfirmOverlayClick(event) {
 }
 
 /* =========================
+   表单校验工具
+========================= */
+function showFieldError(fieldId, errorId, message) {
+    const field = document.getElementById(fieldId);
+    const errorEl = document.getElementById(errorId);
+    field.classList.add('error');
+    field.classList.remove('success');
+    errorEl.textContent = message;
+    errorEl.style.display = 'flex';
+    return false;
+}
+
+function showFieldSuccess(fieldId, errorId) {
+    const field = document.getElementById(fieldId);
+    const errorEl = document.getElementById(errorId);
+    field.classList.remove('error');
+    field.classList.add('success');
+    errorEl.style.display = 'none';
+    return true;
+}
+
+function clearFieldValidation(fieldId, errorId) {
+    const field = document.getElementById(fieldId);
+    const errorEl = document.getElementById(errorId);
+    field.classList.remove('error', 'success');
+    errorEl.style.display = 'none';
+}
+
+// URL 详细校验
+function validateUrlDetailed(url) {
+    if (!url || !url.trim()) {
+        return { valid: false, error: '请输入链接地址' };
+    }
+    
+    url = url.trim();
+    
+    // 检查协议
+    if (!url.match(/^https?:\/\//i)) {
+        return { valid: false, error: '链接必须以 http:// 或 https:// 开头' };
+    }
+    
+    try {
+        const urlObj = new URL(url);
+        
+        // 检查可疑协议
+        if (['data:', 'javascript:', 'vbscript:', 'file:'].includes(urlObj.protocol)) {
+            return { valid: false, error: '不安全的协议类型' };
+        }
+        
+        // 检查域名
+        if (!urlObj.hostname || urlObj.hostname.length < 2) {
+            return { valid: false, error: '域名格式不正确' };
+        }
+        
+        // 检查域名中是否有至少一个点（顶级域名）
+        if (!urlObj.hostname.includes('.')) {
+            return { valid: false, error: '域名不完整，缺少顶级域名（如 .com）' };
+        }
+        
+        return { valid: true };
+    } catch (e) {
+        return { valid: false, error: '链接格式不正确' };
+    }
+}
+
+// 链接名称校验
+function validateLinkName() {
+    const name = document.getElementById('linkName').value.trim();
+    if (!name) {
+        return showFieldError('linkName', 'linkNameError', '请输入链接名称');
+    }
+    if (name.length > 50) {
+        return showFieldError('linkName', 'linkNameError', '链接名称不能超过 50 个字符');
+    }
+    return showFieldSuccess('linkName', 'linkNameError');
+}
+
+// 链接地址校验
+function validateLinkUrl() {
+    const url = document.getElementById('linkUrl').value.trim();
+    const result = validateUrlDetailed(url);
+    if (!result.valid) {
+        return showFieldError('linkUrl', 'linkUrlError', result.error);
+    }
+    return showFieldSuccess('linkUrl', 'linkUrlError');
+}
+
+// 任务名称校验
+function validateTaskName() {
+    const name = document.getElementById('taskName').value.trim();
+    if (!name) {
+        return showFieldError('taskName', 'taskNameError', '请输入任务名称');
+    }
+    if (name.length > 100) {
+        return showFieldError('taskName', 'taskNameError', '任务名称不能超过 100 个字符');
+    }
+    return showFieldSuccess('taskName', 'taskNameError');
+}
+
+// 任务截止时间校验
+function validateTaskTime() {
+    const time = document.getElementById('taskTime').value;
+    const errorEl = document.getElementById('taskTimeError');
+    const hintEl = document.getElementById('taskTimeHint');
+    
+    if (!time) {
+        hintEl.style.display = 'none';
+        return showFieldError('taskTime', 'taskTimeError', '请选择截止时间');
+    }
+    
+    const selectedTime = new Date(time);
+    const now = new Date();
+    
+    // 检查是否是过去时间（仅在新建任务时严格检查）
+    if (!editingTaskId && selectedTime < now) {
+        hintEl.style.display = 'none';
+        return showFieldError('taskTime', 'taskTimeError', '截止时间不能是过去的时间');
+    }
+    
+    hintEl.style.display = 'block';
+    return showFieldSuccess('taskTime', 'taskTimeError');
+}
+
+// 清除所有表单校验状态
+function clearLinkFormValidation() {
+    clearFieldValidation('linkName', 'linkNameError');
+    clearFieldValidation('linkUrl', 'linkUrlError');
+}
+
+function clearTaskFormValidation() {
+    clearFieldValidation('taskName', 'taskNameError');
+    clearFieldValidation('taskTime', 'taskTimeError');
+    document.getElementById('taskTimeHint').style.display = 'block';
+}
+
+/* =========================
    模态框通用工具
 ========================= */
 function handleOverlayClick(event, modalId) {
@@ -740,6 +963,9 @@ function openLinkModal(id) {
     editingLinkId = id || null;
     const modal = document.getElementById("linkModal");
     const title = document.getElementById("linkModalTitle");
+
+    // 清除校验状态
+    clearLinkFormValidation();
 
     if (id) {
         const link = links.find(l => l.id === id);
@@ -759,14 +985,21 @@ function openLinkModal(id) {
 function closeLinkModal() {
     document.getElementById("linkModal").classList.remove("active");
     editingLinkId = null;
+    clearLinkFormValidation();
 }
 
 function confirmLink() {
+    // 执行所有校验
+    const isNameValid = validateLinkName();
+    const isUrlValid = validateLinkUrl();
+    
+    if (!isNameValid || !isUrlValid) {
+        Toast.error("请修正表单中的错误");
+        return;
+    }
+    
     const name = document.getElementById("linkName").value.trim();
     const url = document.getElementById("linkUrl").value.trim();
-
-    if (!name) { Toast.error("请填写链接名称"); return; }
-    if (!url || !/^https?:\/\/.+/.test(url)) { Toast.error("请填写有效的链接地址（以 http:// 或 https:// 开头）"); return; }
 
     if (editingLinkId) {
         const link = links.find(l => l.id === editingLinkId);
@@ -852,6 +1085,9 @@ function openTaskModal(id) {
     const modal = document.getElementById("taskModal");
     const title = document.getElementById("taskModalTitle");
 
+    // 清除校验状态
+    clearTaskFormValidation();
+
     renderLinkCheckboxes();
 
     if (id) {
@@ -883,14 +1119,37 @@ function openTaskModal(id) {
 function closeTaskModal() {
     document.getElementById("taskModal").classList.remove("active");
     editingTaskId = null;
+    clearTaskFormValidation();
 }
 
-function confirmTask() {
+async function confirmTask() {
+    // 执行所有校验
+    const isNameValid = validateTaskName();
+    const isTimeValid = validateTaskTime();
+    
+    if (!isNameValid || !isTimeValid) {
+        Toast.error("请修正表单中的错误");
+        return;
+    }
+    
     const name = document.getElementById("taskName").value.trim();
     const time = document.getElementById("taskTime").value;
 
-    if (!name) { Toast.error("请填写任务名称"); return; }
-    if (!time) { Toast.error("请选择截止时间"); return; }
+    // 检查是否是过去时间（编辑任务时提示但不阻止）
+    const selectedTime = new Date(time);
+    const now = new Date();
+    
+    if (!editingTaskId && selectedTime < now) {
+        const result = await showConfirm({
+            icon: '⚠️',
+            title: '时间确认',
+            message: '您选择的截止时间是过去的时间，是否继续创建？',
+            confirmText: '继续创建',
+            cancelText: '重新选择'
+        });
+        
+        if (!result.confirmed) return;
+    }
 
     const selected = [...document.querySelectorAll("#linkCheckboxes input:checked")]
         .map(cb => cb.value);
