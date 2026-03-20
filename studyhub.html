@@ -138,6 +138,71 @@ button:hover {
     box-shadow: 0 2px 8px rgba(79,140,255,0.1);
 }
 
+.link-card.pinned {
+    background: #fffbeb;
+    border-color: #f59e0b;
+    box-shadow: 0 2px 8px rgba(245,158,11,0.15);
+}
+
+.link-card.pinned:hover {
+    background: #fef3c7;
+    border-color: #d97706;
+}
+
+.link-card.pinned .link-card-name {
+    color: #d97706;
+}
+
+.pin-btn {
+    background: none;
+    border: none;
+    padding: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    opacity: 0.6;
+    transition: 0.2s;
+    border-radius: 4px;
+}
+
+.pin-btn:hover {
+    opacity: 1;
+    background: rgba(245,158,11,0.1);
+}
+
+.pin-btn.pinned {
+    opacity: 1;
+    color: #f59e0b;
+}
+
+/* 搜索框样式 */
+.search-box input {
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 14px;
+    width: 200px;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.search-box input:focus {
+    outline: none;
+    border-color: #4f8cff;
+    box-shadow: 0 0 0 3px rgba(79,140,255,0.15);
+}
+
+/* 键盘焦点样式 */
+.link-card:focus,
+.task:focus {
+    outline: 2px solid #4f8cff;
+    outline-offset: 2px;
+}
+
+.link-card.focused,
+.task.focused {
+    outline: 2px solid #4f8cff;
+    outline-offset: 2px;
+}
+
 .link-card-name {
     flex: 1;
     cursor: pointer;
@@ -639,6 +704,117 @@ button:hover {
     color: #ef4444;
 }
 
+/* =========================
+   移动端适配
+========================= */
+@media (max-width: 600px) {
+    .container {
+        margin: 10px auto;
+        padding: 10px;
+    }
+
+    .card {
+        padding: 16px;
+        margin-bottom: 12px;
+    }
+
+    .modal-box {
+        width: 90vw;
+        max-width: 90vw;
+        padding: 20px;
+        margin: 20px;
+    }
+
+    .modal-title {
+        font-size: 16px;
+        margin-bottom: 16px;
+    }
+
+    .link-grid {
+        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+        gap: 8px;
+    }
+
+    .link-card {
+        padding: 8px 10px;
+    }
+
+    .link-card-name {
+        font-size: 13px;
+    }
+
+    .task {
+        padding: 12px 14px;
+    }
+
+    .task-title {
+        font-size: 14px;
+    }
+
+    .task-links-preview {
+        gap: 4px;
+    }
+
+    .task-link-chip {
+        font-size: 11px;
+        padding: 2px 8px;
+    }
+
+    .actions {
+        gap: 6px;
+    }
+
+    button {
+        padding: 6px 12px;
+        font-size: 13px;
+        min-height: 36px;
+    }
+
+    .small-btn {
+        padding: 4px 6px;
+        font-size: 11px;
+        min-height: 28px;
+    }
+
+    .card-header {
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .card-header h2 {
+        font-size: 16px;
+    }
+
+    .search-box {
+        width: 100%;
+        margin-top: 8px;
+    }
+
+    .search-box input {
+        width: 100%;
+    }
+}
+
+/* 超小屏幕优化 */
+@media (max-width: 400px) {
+    .link-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .modal-box {
+        padding: 16px;
+    }
+
+    .modal-footer {
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .modal-footer button {
+        width: 100%;
+    }
+}
+
 </style>
 </head>
 
@@ -652,7 +828,12 @@ button:hover {
     <div class="card">
         <div class="card-header">
             <h2>🔗 快速链接池</h2>
-            <button onclick="openLinkModal()">+ 添加链接</button>
+            <div style="display:flex;gap:10px;align-items:center;">
+                <div class="search-box">
+                    <input type="text" id="linkSearch" placeholder="搜索链接... (/)" oninput="filterLinks()" onfocus="linkSearchFocused=true" onblur="linkSearchFocused=false">
+                </div>
+                <button onclick="openLinkModal()">+ 添加链接</button>
+            </div>
         </div>
 
         <div id="linkList" class="link-grid">
@@ -772,6 +953,9 @@ let links = JSON.parse(localStorage.getItem("links")) || [];
 let tasks = JSON.parse(localStorage.getItem("tasks")) || [];
 let editingLinkId = null;
 let editingTaskId = null;
+let linkSearchFocused = false;
+let currentFocusType = null; // 'link' 或 'task'
+let currentFocusIndex = -1;
 
 function saveData() {
     localStorage.setItem("links", JSON.stringify(links));
@@ -1151,30 +1335,109 @@ async function deleteLink(id) {
     Toast.success("链接已删除");
 }
 
-function renderLinks() {
+function togglePinLink(id, event) {
+    if (event) {
+        event.stopPropagation();
+    }
+    const link = links.find(l => l.id === id);
+    if (link) {
+        link.pinned = !link.pinned;
+        link.pinnedAt = link.pinned ? Date.now() : null;
+        saveData();
+        renderLinks();
+        if (link.pinned) {
+            Toast.success("链接已置顶");
+        } else {
+            Toast.info("已取消置顶");
+        }
+    }
+}
+
+function filterLinks() {
+    const searchTerm = document.getElementById('linkSearch').value.toLowerCase().trim();
+    renderLinks(searchTerm);
+}
+
+function renderLinks(searchTerm = '') {
     const list = document.getElementById("linkList");
 
-    if (!links.length) {
-        list.innerHTML = '<div class="empty-hint">暂无链接，点击「添加链接」开始添加</div>';
+    // 过滤链接
+    let filteredLinks = links;
+    if (searchTerm) {
+        filteredLinks = links.filter(link => 
+            link.name.toLowerCase().includes(searchTerm) || 
+            link.url.toLowerCase().includes(searchTerm)
+        );
+    }
+
+    if (!filteredLinks.length) {
+        list.innerHTML = searchTerm 
+            ? '<div class="empty-hint">未找到匹配的链接</div>'
+            : '<div class="empty-hint">暂无链接，点击「添加链接」开始添加</div>';
         renderLinkCheckboxes();
         return;
     }
 
+    // 按置顶状态和时间排序（置顶的在前，按置顶时间倒序）
+    const sortedLinks = [...filteredLinks].sort((a, b) => {
+        if (a.pinned && !b.pinned) return -1;
+        if (!a.pinned && b.pinned) return 1;
+        if (a.pinned && b.pinned) {
+            return (b.pinnedAt || 0) - (a.pinnedAt || 0);
+        }
+        return 0;
+    });
+
     list.innerHTML = "";
-    links.forEach(link => {
+    sortedLinks.forEach((link, index) => {
         const div = document.createElement("div");
-        div.className = "link-card";
+        div.className = link.pinned ? "link-card pinned" : "link-card";
+        div.tabIndex = 0;
+        div.dataset.index = index;
+        div.dataset.type = 'link';
+        div.dataset.id = link.id;
         div.innerHTML = `
             <span class="link-card-name" onclick="window.open('${escapeHtml(link.url)}', '_blank')" title="${escapeHtml(link.url)}">${escapeHtml(link.name)}</span>
             <div class="link-card-actions">
+                <button class="pin-btn ${link.pinned ? 'pinned' : ''}" onclick="togglePinLink(${link.id}, event)" title="${link.pinned ? '取消置顶' : '置顶'}">${link.pinned ? '📌' : '📍'}</button>
                 <button class="small-btn" onclick="openLinkModal(${link.id})" title="编辑">✏️</button>
                 <button class="small-btn btn-danger" onclick="deleteLink(${link.id})" title="删除">🗑</button>
             </div>
         `;
+        // 添加键盘事件监听
+        div.addEventListener('keydown', (e) => handleLinkKeydown(e, link));
         list.appendChild(div);
     });
 
     renderLinkCheckboxes();
+}
+
+async function handleLinkKeydown(event, link) {
+    const cards = document.querySelectorAll('.link-card');
+    const currentIndex = Array.from(cards).indexOf(event.currentTarget);
+    
+    switch(event.key) {
+        case 'ArrowDown':
+            event.preventDefault();
+            if (currentIndex < cards.length - 1) {
+                cards[currentIndex + 1].focus();
+            }
+            break;
+        case 'ArrowUp':
+            event.preventDefault();
+            if (currentIndex > 0) {
+                cards[currentIndex - 1].focus();
+            }
+            break;
+        case 'Enter':
+            event.preventDefault();
+            window.open(link.url, '_blank');
+            break;
+        case 'Delete':
+            event.preventDefault();
+            await deleteLink(link.id);
+            break;
+    }
 }
 
 function renderLinkCheckboxes() {
@@ -1360,6 +1623,36 @@ function renderTasks() {
     }
 }
 
+async function handleTaskKeydown(event, task) {
+    const allTasks = document.querySelectorAll('#taskList > .task, .completed-section .task');
+    const currentIndex = Array.from(allTasks).indexOf(event.currentTarget);
+    
+    switch(event.key) {
+        case 'ArrowDown':
+            event.preventDefault();
+            if (currentIndex < allTasks.length - 1) {
+                allTasks[currentIndex + 1].focus();
+            }
+            break;
+        case 'ArrowUp':
+            event.preventDefault();
+            if (currentIndex > 0) {
+                allTasks[currentIndex - 1].focus();
+            }
+            break;
+        case 'Enter':
+            event.preventDefault();
+            if (task.links && task.links.length > 0) {
+                openLinks(task.links);
+            }
+            break;
+        case 'Delete':
+            event.preventDefault();
+            await deleteTask(task.id);
+            break;
+    }
+}
+
 function renderTaskItem(task, container) {
     const deadline = new Date(task.time);
     const remaining = getRemainingTime(task.time);
@@ -1367,6 +1660,8 @@ function renderTaskItem(task, container) {
     
     const div = document.createElement("div");
     div.className = isCompleted ? "task completed" : "task";
+    div.tabIndex = 0;
+    div.dataset.id = task.id;
     
     // 状态徽章
     let statusBadge = '';
@@ -1419,6 +1714,8 @@ function renderTaskItem(task, container) {
         </div>
     `;
 
+    // 添加键盘事件监听
+    div.addEventListener('keydown', (e) => handleTaskKeydown(e, task));
     container.appendChild(div);
 }
 
@@ -1507,6 +1804,7 @@ function shortenUrl(url) {
    键盘快捷键（ESC 关闭弹窗）
 ========================= */
 document.addEventListener("keydown", e => {
+    // ESC 关闭弹窗
     if (e.key === "Escape") {
         const confirmModal = document.getElementById('confirmModal');
         if (confirmModal.classList.contains('active')) {
@@ -1524,6 +1822,45 @@ document.addEventListener("keydown", e => {
         if (confirmModal.classList.contains('active') && input.style.display === 'none') {
             closeConfirmModal(true);
         }
+    }
+});
+
+/* =========================
+   全局快捷键
+========================= */
+document.addEventListener("keydown", e => {
+    // 如果正在输入或弹窗打开，不触发全局快捷键
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || linkSearchFocused) {
+        return;
+    }
+    
+    // 检查是否有模态框打开
+    const linkModal = document.getElementById('linkModal');
+    const taskModal = document.getElementById('taskModal');
+    const confirmModal = document.getElementById('confirmModal');
+    if (linkModal.classList.contains('active') || 
+        taskModal.classList.contains('active') || 
+        confirmModal.classList.contains('active')) {
+        return;
+    }
+    
+    switch(e.key.toLowerCase()) {
+        case 'n':
+            e.preventDefault();
+            openLinkModal();
+            break;
+        case 't':
+            e.preventDefault();
+            openTaskModal();
+            break;
+        case '/':
+            e.preventDefault();
+            const searchBox = document.getElementById('linkSearch');
+            if (searchBox) {
+                searchBox.focus();
+                searchBox.select();
+            }
+            break;
     }
 });
 
