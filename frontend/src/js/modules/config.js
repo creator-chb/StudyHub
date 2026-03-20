@@ -84,6 +84,14 @@ const Config = (function() {
             toggleTheme: { key: 'd', ctrl: true, alt: false, description: '切换主题' },
             exportData: { key: 'e', ctrl: true, alt: false, description: '导出数据' },
             importData: { key: 'i', ctrl: true, alt: false, description: '导入数据' }
+        },
+
+        // 功能开关（Phase 0 新增）
+        features: {
+            // 是否启用后端同步（Phase 1 实现时设为 true）
+            backendSync: false,
+            // 后端服务地址
+            backendUrl: 'http://localhost:3000'
         }
     };
 
@@ -233,6 +241,15 @@ const Config = (function() {
          */
         getVersion() {
             return currentConfig.version;
+        },
+
+        /**
+         * 检查功能开关状态
+         * @param {string} feature - 功能名称（如 'backendSync'）
+         * @returns {boolean} 是否启用
+         */
+        isFeatureEnabled(feature) {
+            return this.get(`features.${feature}`, false) === true;
         }
     };
 })();

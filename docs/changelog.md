@@ -6,6 +6,50 @@
 
 ---
 
+## [2.0.0-dev] - 2026-03-20
+
+### 新增 ✨
+- 🏗️ **存储抽象层（Phase 0）**
+  - 新增 `AbstractStorage` 基类，定义存储适配器接口规范
+  - `get/set/remove/clear` 为抽象方法，子类必须实现
+  - `subscribe/unsubscribe/_emit` 为共享事件系统实现
+  - `exportAll/importAll/validateImport/formatBytes` 为共享辅助方法
+- 💾 **LocalStorageAdapter**
+  - 将原 `storage.js` 逻辑迁移为独立适配器
+  - 实现 `AbstractStorage` 所有抽象方法
+  - 路径：`frontend/src/js/modules/storage/LocalStorageAdapter.js`
+- 🔀 **Storage 工厂模块**
+  - `storage.js` 重构为工厂/代理，根据配置选择适配器
+  - 通过 `Config.get('features.backendSync')` 控制
+  - 当前始终返回 `LocalStorageAdapter`，后端同步将在 Phase 1 实现
+- ⚙️ **features.backendSync 配置开关**
+  - `config.js` 新增 `features` 配置节
+  - `features.backendSync`（默认 false）：是否启用后端同步
+  - `features.backendUrl`（默认 `http://localhost:3000`）：后端服务地址
+  - 新增 `Config.isFeatureEnabled(feature)` 便捷方法
+
+### 优化 ⚡
+- 📁 **项目目录结构重组**
+  - 前端代码迁移至 `frontend/` 目录（原 `src/` 目录）
+  - 根级 `index.html` 更新脚本引用路径至 `frontend/src/...`
+  - `frontend/index.html` 新增存储抽象层脚本加载顺序
+
+### 新增基础设施 🔧
+- 🖥️ **backend/ 后端骨架（Phase 0）**
+  - `backend/package.json`：Express + cors + dotenv 依赖声明
+  - `backend/src/index.js`：Express 应用入口，健康检查路由
+  - `backend/src/routes/health.js`：`GET /api/health` 端点
+  - `backend/.env.example`：环境变量配置模板（含 Phase 1 预留项）
+- 🔗 **shared/ 共享类型定义**
+  - `shared/types.js`：JSDoc `@typedef` 定义 LinkItem、TaskItem、CategoryItem、StorageData、ApiResponse 等
+- 📦 **根级 package.json**
+  - `npm run dev`：启动前端开发服务器
+  - `npm run dev:frontend`：同上
+  - `npm run dev:backend`：启动后端开发服务器
+  - `npm run install:deps`：安装后端依赖
+
+---
+
 ## [1.4.0] - 2026-03-20
 
 ### 新增 ✨
