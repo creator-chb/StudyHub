@@ -1475,13 +1475,28 @@ function openTaskModal(id) {
         title.textContent = "编辑任务";
         document.getElementById("taskName").value = task.name;
         document.getElementById("taskTime").value = task.time;
-        document.getElementById("manualLinks").value = "";
 
-        // 恢复勾选状态
+        // 恢复勾选状态，并分离手动链接
+        const linkPoolUrls = links.map(l => l.url);
+        const selectedLinks = [];
+        const manualLinks = [];
+        
+        task.links.forEach(url => {
+            if (linkPoolUrls.includes(url)) {
+                selectedLinks.push(url);
+            } else {
+                manualLinks.push(url);
+            }
+        });
+        
+        // 设置复选框状态
         const checkboxes = document.querySelectorAll("#linkCheckboxes input[type=checkbox]");
         checkboxes.forEach(cb => {
-            cb.checked = task.links.includes(cb.value);
+            cb.checked = selectedLinks.includes(cb.value);
         });
+        
+        // 回显手动输入的链接
+        document.getElementById("manualLinks").value = manualLinks.join('\n');
     } else {
         title.textContent = "创建任务";
         document.getElementById("taskName").value = "";
