@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StudyHub - 学习管理 Dashboard</title>
+    <link rel="stylesheet" href="src/css/main.css">
+</head>
+<body>
+    <div class="container">
+        <!-- 应用头部 -->
+        <header class="app-header">
+            <h1 class="app-title">📚 StudyHub</h1>
+            <div class="app-actions">
+                <button id="btnExport" class="btn-secondary" title="导出数据 (Ctrl+E)">📥 导出</button>
+                <button id="btnImport" class="btn-secondary" title="导入数据 (Ctrl+I)">📤 导入</button>
+                <button id="themeToggle" class="icon-btn" title="切换主题 (Ctrl+D)">🌙</button>
+            </div>
+        </header>
+
+        <!-- 链接池模块 -->
+        <div class="card">
+            <div class="card-header">
+                <h2>🔗 快速链接池</h2>
+                <div class="card-actions">
+                    <div class="filter-group">
+                        <div class="search-box">
+                            <input type="text" id="linkSearch" placeholder="搜索链接... (/)" autocomplete="off">
+                        </div>
+                        <select id="categoryFilter">
+                            <option value="">全部分类</option>
+                        </select>
+                    </div>
+                    <button id="btnAddLink" title="新建链接 (N)">+ 添加链接</button>
+                </div>
+            </div>
+            <div id="linkList" class="link-grid">
+                <div class="empty-hint">暂无链接，点击「添加链接」开始添加</div>
+            </div>
+        </div>
+
+        <!-- 任务管理模块 -->
+        <div class="card">
+            <div class="card-header">
+                <h2>📋 任务管理</h2>
+                <div class="card-actions">
+                    <div class="filter-group">
+                        <div class="search-box">
+                            <input type="text" id="taskSearch" placeholder="搜索任务..." autocomplete="off">
+                        </div>
+                        <select id="priorityFilter">
+                            <option value="all">全部优先级</option>
+                            <option value="high">🔴 高</option>
+                            <option value="medium">🟡 中</option>
+                            <option value="low">🟢 低</option>
+                        </select>
+                        <select id="statusFilter">
+                            <option value="all">全部状态</option>
+                            <option value="pending">进行中</option>
+                            <option value="completed">已完成</option>
+                        </select>
+                    </div>
+                    <button id="btnAddTask" title="创建任务 (T)">+ 创建任务</button>
+                </div>
+            </div>
+            <div id="taskList" class="task-grid">
+                <div class="empty-hint">暂无任务，点击「创建任务」开始添加</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 隐藏的文件输入 -->
+    <input type="file" id="importFile" class="hidden" accept=".json">
+
+    <!-- Toast 容器 -->
+    <div id="toastContainer" class="toast-container"></div>
+
+    <!-- 脚本加载 -->
+    <script src="src/js/modules/config.js"></script>
+    <script src="src/js/modules/utils.js"></script>
+    <script src="src/js/modules/errorHandler.js"></script>
+    <script src="src/js/modules/storage.js"></script>
+    <script src="src/js/modules/toast.js"></script>
+    <script src="src/js/modules/modal.js"></script>
+    <script src="src/js/modules/theme.js"></script>
+    <script src="src/js/modules/keyboard.js"></script>
+    <script src="src/js/modules/touch.js"></script>
+    <script src="src/js/modules/linkManager.js"></script>
+    <script src="src/js/modules/taskManager.js"></script>
+    <script src="src/js/modules/renderer.js"></script>
+    <script src="src/js/app.js"></script>
+
+    <!-- 绑定按钮事件 -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // 添加链接按钮
+            document.getElementById('btnAddLink').addEventListener('click', () => {
+                App.openLinkModal();
+            });
+
+            // 添加任务按钮
+            document.getElementById('btnAddTask').addEventListener('click', () => {
+                App.openTaskModal();
+            });
+
+            // 导出按钮
+            document.getElementById('btnExport').addEventListener('click', () => {
+                App.exportData();
+            });
+
+            // 导入按钮
+            document.getElementById('btnImport').addEventListener('click', () => {
+                App.importData();
+            });
+
+            // 分类筛选
+            document.getElementById('categoryFilter').addEventListener('change', () => {
+                // 触发重新渲染
+                LinkManager.subscribe(() => {})();
+            });
+
+            // 优先级筛选
+            document.getElementById('priorityFilter').addEventListener('change', () => {
+                // 触发重新渲染
+                TaskManager.subscribe(() => {})();
+            });
+
+            // 状态筛选
+            document.getElementById('statusFilter').addEventListener('change', () => {
+                // 触发重新渲染
+                TaskManager.subscribe(() => {})();
+            });
+
+            // 渲染分类选项
+            const categorySelect = document.getElementById('categoryFilter');
+            const categories = LinkManager.getCategories();
+            categorySelect.innerHTML = '<option value="">全部分类</option>' +
+                categories.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+        });
+    </script>
+</body>
+</html>
