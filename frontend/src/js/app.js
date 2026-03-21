@@ -45,6 +45,9 @@ const App = (function() {
         // 初始化模态框 ESC 监听
         Modal.initEscListener();
 
+        // 初始化认证模块
+        initAuth();
+
         // 订阅数据变更
         LinkManager.subscribe(renderLinks);
         TaskManager.subscribe(renderTasks);
@@ -58,6 +61,60 @@ const App = (function() {
 
         initialized = true;
         console.log(`StudyHub v${Config.getVersion()} 初始化完成`);
+    }
+
+    /**
+     * 初始化认证模块和 UI
+     * @private
+     */
+    function initAuth() {
+        // 检查 Auth 模块是否存在
+        if (typeof Auth === 'undefined') {
+            console.warn('[App] Auth 模块未加载，跳过认证初始化');
+            return;
+        }
+
+        // 初始化认证模块
+        Auth.init();
+
+        // 获取头部操作区域
+        const headerActions = document.querySelector('.app-actions');
+        if (!headerActions) return;
+
+        // 创建登录按钮
+        const loginBtn = document.createElement('button');
+        loginBtn.id = 'btnLogin';
+        loginBtn.className = 'btn-secondary';
+        loginBtn.textContent = '登录';
+        loginBtn.addEventListener('click', () => Auth.openLogin());
+        headerActions.appendChild(loginBtn);
+
+        // 创建注册按钮
+        const registerBtn = document.createElement('button');
+        registerBtn.id = 'btnRegister';
+        registerBtn.className = 'btn-secondary';
+        registerBtn.textContent = '注册';
+        registerBtn.addEventListener('click', () => Auth.openRegister());
+        headerActions.appendChild(registerBtn);
+
+        // 监听认证状态变化
+        Auth.subscribe((event, data) => {
+            if (event === 'login' || event === 'register') {
+                // 隐藏登录/注册按钮
+                loginBtn.style.display = 'none';
+                registerBtn.style.display = 'none';
+            } else if (event === 'logout') {
+                // 显示登录/注册按钮
+                loginBtn.style.display = '';
+                registerBtn.style.display = '';
+            }
+        });
+
+        // 根据认证状态显示/隐藏按钮
+        if (Auth.isAuthenticated()) {
+            loginBtn.style.display = 'none';
+            registerBtn.style.display = 'none';
+        }
     }
 
     /**

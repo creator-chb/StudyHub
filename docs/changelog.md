@@ -6,6 +6,42 @@
 
 ---
 
+## [2.0.0-dev] - 2026-03-21
+
+### 新增 ✨
+- 🔐 **用户认证系统（Phase 1）**
+  - 后端 Express + TypeScript 认证 API 完整实现
+  - `POST /api/v1/auth/register` - 用户注册（邮箱验证、密码加密）
+  - `POST /api/v1/auth/login` - 用户登录（JWT Token 签发）
+  - `POST /api/v1/auth/refresh` - Token 自动刷新机制
+  - `GET /api/v1/auth/me` - 获取当前用户信息
+  - `POST /api/v1/auth/logout` - 用户登出（Token 撤销）
+  - 前端 `api.js` - API 客户端封装，支持请求/响应拦截器
+  - 前端 `auth.js` - 认证模块，提供登录/注册模态框 UI
+  - JWT Token 存储管理（localStorage）
+  - 认证状态持久化和自动恢复
+  - 登录/登出 UI 动态更新
+
+### 新增基础设施 🔧
+- 🗄️ **PostgreSQL 数据库**
+  - 用户表（users）设计和实现
+  - 刷新令牌表（refresh_tokens）实现
+  - 数据库迁移脚本（node-pg-migrate）
+  - 数据库连接池配置
+
+- 🔒 **JWT 认证中间件**
+  - Token 验证中间件（`authenticate`）
+  - 错误处理中间件（统一错误响应格式）
+  - 请求日志中间件
+
+### 优化 ⚡
+- 📁 **backend/ 目录重构为 TypeScript**
+  - `.ts` 文件替代 `.js` 文件
+  - 完整的类型定义和接口
+  - ESLint + Prettier 代码规范配置
+
+---
+
 ## [2.0.0-dev] - 2026-03-20
 
 ### 新增 ✨
@@ -277,4 +313,4 @@
 
 ---
 
-**最后更新**: 2026-03-20（发布 v1.4.0）
+**最后更新**: 2026-03-21（Phase 1 用户认证完成）

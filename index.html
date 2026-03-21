@@ -83,6 +83,9 @@
     <script src="frontend/src/js/modules/storage/AbstractStorage.js"></script>
     <script src="frontend/src/js/modules/storage/LocalStorageAdapter.js"></script>
     <script src="frontend/src/js/modules/storage.js"></script>
+    <!-- API 客户端（Phase 1 新增） -->
+    <script src="frontend/src/js/modules/api.js"></script>
+    <script src="frontend/src/js/modules/auth.js"></script>
     <!-- UI 模块 -->
     <script src="frontend/src/js/modules/toast.js"></script>
     <script src="frontend/src/js/modules/modal.js"></script>
@@ -98,6 +101,44 @@
     <!-- 绑定按钮事件 -->
     <script>
         document.addEventListener('DOMContentLoaded', () => {
+            // 初始化认证模块
+            Auth.init();
+
+            // 登录/注册按钮
+            const headerActions = document.querySelector('.app-actions');
+            const loginBtn = document.createElement('button');
+            loginBtn.id = 'btnLogin';
+            loginBtn.className = 'btn-secondary';
+            loginBtn.textContent = '登录';
+            loginBtn.addEventListener('click', () => Auth.openLogin());
+            headerActions.appendChild(loginBtn);
+
+            const registerBtn = document.createElement('button');
+            registerBtn.id = 'btnRegister';
+            registerBtn.className = 'btn-secondary';
+            registerBtn.textContent = '注册';
+            registerBtn.addEventListener('click', () => Auth.openRegister());
+            headerActions.appendChild(registerBtn);
+
+            // 监听认证状态变化
+            Auth.subscribe((event, data) => {
+                if (event === 'login' || event === 'register') {
+                    // 隐藏登录/注册按钮
+                    loginBtn.style.display = 'none';
+                    registerBtn.style.display = 'none';
+                } else if (event === 'logout') {
+                    // 显示登录/注册按钮
+                    loginBtn.style.display = '';
+                    registerBtn.style.display = '';
+                }
+            });
+
+            // 根据认证状态显示/隐藏按钮
+            if (Auth.isAuthenticated()) {
+                loginBtn.style.display = 'none';
+                registerBtn.style.display = 'none';
+            }
+
             // 添加链接按钮
             document.getElementById('btnAddLink').addEventListener('click', () => {
                 App.openLinkModal();
