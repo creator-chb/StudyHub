@@ -102,6 +102,12 @@
   - 创建 `shared/` 目录，存放共享类型定义
   - 更新构建配置和开发脚本
 
+- [x] **HTML 文件结构规范化**
+  - 创建 `legacy/` 目录归档历史版本
+  - 归档 `studyhub.html` 到 `legacy/studyhub_v1_legacy.html`
+  - 明确区分主入口文件和开发版本入口
+  - 为主入口和归档文件添加详细注释说明
+
 - [x] **文档更新**
   - 更新 README 开发指引
   - 记录架构决策（ADR-001）
@@ -110,6 +116,7 @@
 - ✅ 可运行的前端版本（功能不变，路径调整为 `frontend/`）
 - ✅ 后端项目基础框架（`backend/`，Phase 0 骨架）
 - ✅ 存储抽象层实现（AbstractStorage + LocalStorageAdapter）
+- ✅ 清晰的 HTML 入口文件结构（主入口/开发版/历史版本）
 
 ---
 
@@ -389,7 +396,10 @@
 
 ```
 StudyHub/
+├── index.html                   # 主应用入口（生产环境使用）
+│
 ├── frontend/                    # 前端应用
+│   ├── index.html              # 前端开发版本入口
 │   ├── src/
 │   │   ├── js/
 │   │   │   ├── modules/
@@ -423,9 +433,20 @@ StudyHub/
 ├── shared/                      # 共享代码
 │   └── types/                   # TypeScript 类型定义
 │
+├── legacy/                      # 历史版本归档
+│   └── studyhub_v1_legacy.html # v1.0 单体应用版本
+│
 ├── docker-compose.yml
 └── README.md
 ```
+
+#### 入口文件说明
+
+| 入口文件 | 用途 | 使用场景 |
+|---------|------|---------|
+| `/index.html` | **主应用入口** | 生产环境，包含完整认证系统 |
+| `/frontend/index.html` | 前端开发版本 | 独立前端开发/测试，无后端依赖 |
+| `/legacy/studyhub_v1_legacy.html` | v1.0 历史版本 | 需要独立HTML文件的场景 |
 
 #### 技术栈详情
 

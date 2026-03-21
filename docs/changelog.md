@@ -9,6 +9,12 @@
 ## [2.0.0-dev] - 2026-03-21
 
 ### 新增 ✨
+- 📁 **HTML 文件结构规范化**
+  - 创建 `legacy/` 目录归档历史版本
+  - 移动 `studyhub.html` 到 `legacy/studyhub_v1_legacy.html`
+  - 为归档文件添加详细的历史版本注释说明
+  - 明确区分主入口文件和开发版本入口
+
 - 🔐 **用户认证系统（Phase 1）**
   - 后端 Express + TypeScript 认证 API 完整实现
   - `POST /api/v1/auth/register` - 用户注册（邮箱验证、密码加密）

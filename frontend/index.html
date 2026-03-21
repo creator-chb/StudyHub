@@ -1,19 +1,34 @@
 <!DOCTYPE html>
+<!--
+================================================================================
+  StudyHub Frontend 开发版本入口
+================================================================================
+  用途说明:
+  - 此文件为前端独立开发/测试版本入口
+  - 用于纯前端开发环境，不依赖后端服务
+  - 适合快速原型开发和UI调试
+  
+  与主入口区别:
+  - 主入口 (根目录/index.html): 包含完整认证系统和后端API集成
+  - 此入口 (frontend/index.html): 前端独立运行版本，使用本地存储
+  
+  生产环境建议:
+  - 请使用根目录的 index.html 作为主应用入口
+================================================================================
+-->
 <html lang="zh">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>StudyHub - 学习管理 Dashboard</title>
+    <title>StudyHub - 前端开发版本</title>
     <link rel="stylesheet" href="src/css/main.css">
 </head>
 <body>
     <div class="container">
         <!-- 应用头部 -->
         <header class="app-header">
-            <h1 class="app-title">📚 StudyHub</h1>
+            <h1 class="app-title">📚 StudyHub <small style="font-size: 0.5em; color: #888;">(Dev)</small></h1>
             <div class="app-actions">
-                <button id="btnExport" class="btn-secondary" title="导出数据 (Ctrl+E)">📥 导出</button>
-                <button id="btnImport" class="btn-secondary" title="导入数据 (Ctrl+I)">📤 导入</button>
                 <button id="themeToggle" class="icon-btn" title="切换主题 (Ctrl+D)">🌙</button>
             </div>
         </header>
@@ -69,9 +84,6 @@
         </div>
     </div>
 
-    <!-- 隐藏的文件输入 -->
-    <input type="file" id="importFile" class="hidden" accept=".json">
-
     <!-- Toast 容器 -->
     <div id="toastContainer" class="toast-container"></div>
 
@@ -109,16 +121,6 @@
             // 添加任务按钮
             document.getElementById('btnAddTask').addEventListener('click', () => {
                 App.openTaskModal();
-            });
-
-            // 导出按钮
-            document.getElementById('btnExport').addEventListener('click', () => {
-                App.exportData();
-            });
-
-            // 导入按钮
-            document.getElementById('btnImport').addEventListener('click', () => {
-                App.importData();
             });
 
             // 分类筛选
