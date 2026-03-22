@@ -97,30 +97,30 @@
     <div id="toastContainer" class="toast-container"></div>
 
     <!-- 脚本加载（顺序重要） -->
-    <script src="frontend/src/js/modules/config.js?v=2"></script>
-    <script src="frontend/src/js/modules/utils.js?v=2"></script>
-    <script src="frontend/src/js/modules/errorHandler.js?v=2"></script>
+    <script src="frontend/src/js/modules/config.js?v=4"></script>
+    <script src="frontend/src/js/modules/utils.js?v=4"></script>
+    <script src="frontend/src/js/modules/errorHandler.js?v=4"></script>
     <!-- 存储抽象层（Phase 0 新增） -->
-    <script src="frontend/src/js/modules/storage/AbstractStorage.js?v=2"></script>
-    <script src="frontend/src/js/modules/storage/LocalStorageAdapter.js?v=2"></script>
-    <script src="frontend/src/js/modules/storage/ApiStorageAdapter.js?v=2"></script>
-    <script src="frontend/src/js/modules/storage.js?v=2"></script>
+    <script src="frontend/src/js/modules/storage/AbstractStorage.js?v=4"></script>
+    <script src="frontend/src/js/modules/storage/LocalStorageAdapter.js?v=4"></script>
+    <script src="frontend/src/js/modules/storage/ApiStorageAdapter.js?v=4"></script>
+    <script src="frontend/src/js/modules/storage.js?v=4"></script>
     <!-- API 客户端（Phase 1 新增） -->
-    <script src="frontend/src/js/modules/api.js?v=2"></script>
-    <script src="frontend/src/js/modules/auth.js?v=2"></script>
+    <script src="frontend/src/js/modules/api.js?v=4"></script>
+    <script src="frontend/src/js/modules/auth.js?v=4"></script>
     <!-- 同步设置（Phase 2 新增） -->
-    <script src="frontend/src/js/modules/syncSettings.js?v=2"></script>
+    <script src="frontend/src/js/modules/syncSettings.js?v=4"></script>
     <!-- UI 模块 -->
-    <script src="frontend/src/js/modules/toast.js?v=2"></script>
-    <script src="frontend/src/js/modules/modal.js?v=2"></script>
-    <script src="frontend/src/js/modules/theme.js?v=2"></script>
-    <script src="frontend/src/js/modules/keyboard.js?v=2"></script>
-    <script src="frontend/src/js/modules/touch.js?v=2"></script>
+    <script src="frontend/src/js/modules/toast.js?v=4"></script>
+    <script src="frontend/src/js/modules/modal.js?v=4"></script>
+    <script src="frontend/src/js/modules/theme.js?v=4"></script>
+    <script src="frontend/src/js/modules/keyboard.js?v=4"></script>
+    <script src="frontend/src/js/modules/touch.js?v=4"></script>
     <!-- 业务模块 -->
-    <script src="frontend/src/js/modules/linkManager.js?v=2"></script>
-    <script src="frontend/src/js/modules/taskManager.js?v=2"></script>
-    <script src="frontend/src/js/modules/renderer.js?v=2"></script>
-    <script src="frontend/src/js/app.js?v=2"></script>
+    <script src="frontend/src/js/modules/linkManager.js?v=4"></script>
+    <script src="frontend/src/js/modules/taskManager.js?v=4"></script>
+    <script src="frontend/src/js/modules/renderer.js?v=4"></script>
+    <script src="frontend/src/js/app.js?v=4"></script>
 
     <!-- 绑定按钮事件 -->
     <script>
@@ -176,7 +176,9 @@
                             Toast.show('已切换到云端同步模式', 'success');
                             // 重新加载数据并渲染
                             LinkManager.reload();
+                            TaskManager.reload();
                             App.renderLinks();
+                            App.renderTasks();
                         } else {
                             console.warn('[App] 切换云端模式失败:', result.message);
                         }
@@ -191,7 +193,9 @@
                     // 登出后切换回本地模式
                     Storage.switchMode('local').then(() => {
                         LinkManager.reload();
+                        TaskManager.reload();
                         App.renderLinks();
+                        App.renderTasks();
                     });
                 }
             });
@@ -206,7 +210,9 @@
                 // 现在只需要重新加载并渲染数据
                 if (Storage.getMode() === 'api') {
                     LinkManager.reload();
+                    TaskManager.reload();
                     App.renderLinks();
+                    App.renderTasks();
                     console.log('[App] API 模式已初始化，数据已加载并渲染');
                 }
             } else {

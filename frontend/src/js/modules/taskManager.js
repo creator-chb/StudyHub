@@ -185,7 +185,18 @@ const TaskManager = (function() {
          * @param {Object} taskData - 任务数据
          * @returns {Object} 操作结果
          */
-        add(taskData) {
+        async add(taskData) {
+            // 如果是 API 模式，通过 Storage 层操作
+            if (typeof Storage !== 'undefined' && Storage.isApiMode && Storage.isApiMode()) {
+                const result = await Storage.addTask(taskData);
+                if (result.success) {
+                    // 重新从 Storage 加载数据
+                    loadData();
+                    notifyListeners();
+                }
+                return result;
+            }
+
             const task = {
                 id: Utils.generateId(),
                 name: taskData.name.trim(),
@@ -219,7 +230,17 @@ const TaskManager = (function() {
          * @param {Object} updates - 更新数据
          * @returns {Object} 操作结果
          */
-        update(id, updates) {
+        async update(id, updates) {
+            // 如果是 API 模式，通过 Storage 层操作
+            if (typeof Storage !== 'undefined' && Storage.isApiMode && Storage.isApiMode()) {
+                const result = await Storage.updateTask(id, updates);
+                if (result.success) {
+                    loadData();
+                    notifyListeners();
+                }
+                return result;
+            }
+
             const index = tasks.findIndex(t => t.id === id);
             if (index === -1) {
                 return { success: false, errors: ['任务不存在'] };
@@ -248,7 +269,17 @@ const TaskManager = (function() {
          * @param {string} id - 任务 ID
          * @returns {Object} 操作结果
          */
-        delete(id) {
+        async delete(id) {
+            // 如果是 API 模式，通过 Storage 层操作
+            if (typeof Storage !== 'undefined' && Storage.isApiMode && Storage.isApiMode()) {
+                const result = await Storage.deleteTask(id);
+                if (result.success) {
+                    loadData();
+                    notifyListeners();
+                }
+                return result;
+            }
+
             const index = tasks.findIndex(t => t.id === id);
             if (index === -1) {
                 return { success: false, errors: ['任务不存在'] };
@@ -265,7 +296,17 @@ const TaskManager = (function() {
          * @param {string} id - 任务 ID
          * @returns {Object} 操作结果
          */
-        toggleComplete(id) {
+        async toggleComplete(id) {
+            // 如果是 API 模式，通过 Storage 层操作
+            if (typeof Storage !== 'undefined' && Storage.isApiMode && Storage.isApiMode()) {
+                const result = await Storage.toggleTaskComplete(id);
+                if (result.success) {
+                    loadData();
+                    notifyListeners();
+                }
+                return result;
+            }
+
             const task = tasks.find(t => t.id === id);
             if (!task) {
                 return { success: false, errors: ['任务不存在'] };
@@ -283,7 +324,17 @@ const TaskManager = (function() {
          * @param {Array} ids - 任务 ID 列表
          * @returns {Object} 操作结果
          */
-        batchDelete(ids) {
+        async batchDelete(ids) {
+            // 如果是 API 模式，通过 Storage 层操作
+            if (typeof Storage !== 'undefined' && Storage.isApiMode && Storage.isApiMode()) {
+                const result = await Storage.batchDeleteTasks(ids);
+                if (result.success) {
+                    loadData();
+                    notifyListeners();
+                }
+                return result;
+            }
+
             const initialCount = tasks.length;
             tasks = tasks.filter(t => !ids.includes(t.id));
             const deletedCount = initialCount - tasks.length;
@@ -300,7 +351,17 @@ const TaskManager = (function() {
          * @param {Array} ids - 任务 ID 列表
          * @returns {Object} 操作结果
          */
-        batchComplete(ids) {
+        async batchComplete(ids) {
+            // 如果是 API 模式，通过 Storage 层操作
+            if (typeof Storage !== 'undefined' && Storage.isApiMode && Storage.isApiMode()) {
+                const result = await Storage.batchCompleteTasks(ids);
+                if (result.success) {
+                    loadData();
+                    notifyListeners();
+                }
+                return result;
+            }
+
             let updatedCount = 0;
             const now = new Date().toISOString();
 
@@ -365,6 +426,15 @@ const TaskManager = (function() {
          */
         unsubscribe(callback) {
             listeners.delete(callback);
+        },
+
+        /**
+         * 重新从存储加载数据
+         * 用于存储模式切换后刷新数据
+         */
+        reload() {
+            loadData();
+            notifyListeners();
         },
 
         /**

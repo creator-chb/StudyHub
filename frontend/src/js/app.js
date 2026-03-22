@@ -386,7 +386,7 @@ const App = (function() {
                     {
                         text: id ? '保存' : '创建',
                         primary: true,
-                        onClick: () => {
+                        onClick: async () => {
                             const name = document.getElementById('modalTaskName').value.trim();
                             const time = document.getElementById('modalTaskTime').value;
                             const priority = document.getElementById('modalTaskPriority').value;
@@ -404,20 +404,22 @@ const App = (function() {
                             const allLinks = [...new Set([...selected, ...manual])];
 
                             if (id) {
-                                const result = TaskManager.update(id, { name, time, priority, links: allLinks });
+                                const result = await TaskManager.update(id, { name, time, priority, links: allLinks });
                                 if (result.success) {
                                     Toast.success('任务更新成功');
                                     Modal.close('taskModal');
+                                    renderTasks();
                                 } else {
-                                    Toast.error(result.errors[0]);
+                                    Toast.error(result.errors?.[0] || '更新失败');
                                 }
                             } else {
-                                const result = TaskManager.add({ name, time, priority, links: allLinks });
+                                const result = await TaskManager.add({ name, time, priority, links: allLinks });
                                 if (result.success) {
                                     Toast.success('任务创建成功');
                                     Modal.close('taskModal');
+                                    renderTasks();
                                 } else {
-                                    Toast.error(result.errors[0]);
+                                    Toast.error(result.errors?.[0] || '创建失败');
                                 }
                             }
                         }

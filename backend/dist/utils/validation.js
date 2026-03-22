@@ -4,7 +4,7 @@
  * 使用 Zod 进行请求参数校验
  */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.batchDeleteSchema = exports.linkFilterSchema = exports.updateLinkSchema = exports.createLinkSchema = exports.updateCategorySchema = exports.createCategorySchema = void 0;
+exports.batchCompleteTasksSchema = exports.batchDeleteTasksSchema = exports.taskFilterSchema = exports.updateTaskSchema = exports.createTaskSchema = exports.batchDeleteSchema = exports.linkFilterSchema = exports.updateLinkSchema = exports.createLinkSchema = exports.updateCategorySchema = exports.createCategorySchema = void 0;
 const zod_1 = require("zod");
 // ============================================
 // 分类验证
@@ -48,5 +48,39 @@ exports.linkFilterSchema = zod_1.z.object({
 });
 exports.batchDeleteSchema = zod_1.z.object({
     ids: zod_1.z.array(zod_1.z.string().uuid()).min(1, '至少选择一个链接'),
+});
+// ============================================
+// 任务验证
+// ============================================
+exports.createTaskSchema = zod_1.z.object({
+    name: zod_1.z.string().min(1, '任务名称不能为空').max(100, '任务名称最多 100 个字符'),
+    description: zod_1.z.string().max(500, '描述最多 500 个字符').optional(),
+    deadline: zod_1.z.string().refine((val) => !isNaN(Date.parse(val)), {
+        message: '无效的截止时间',
+    }),
+    priority: zod_1.z.enum(['high', 'medium', 'low']).default('medium'),
+    links: zod_1.z.array(zod_1.z.string().regex(urlRegex, 'URL 格式无效')).max(10, '每个任务最多关联 10 个链接').optional(),
+});
+exports.updateTaskSchema = zod_1.z.object({
+    name: zod_1.z.string().min(1, '任务名称不能为空').max(100, '任务名称最多 100 个字符').optional(),
+    description: zod_1.z.string().max(500, '描述最多 500 个字符').optional().nullable(),
+    deadline: zod_1.z.string().refine((val) => !isNaN(Date.parse(val)), {
+        message: '无效的截止时间',
+    }).optional(),
+    priority: zod_1.z.enum(['high', 'medium', 'low']).optional(),
+    links: zod_1.z.array(zod_1.z.string().regex(urlRegex, 'URL 格式无效')).max(10, '每个任务最多关联 10 个链接').optional(),
+});
+exports.taskFilterSchema = zod_1.z.object({
+    status: zod_1.z.enum(['pending', 'completed', 'all']).default('all'),
+    priority: zod_1.z.enum(['high', 'medium', 'low']).optional(),
+    search: zod_1.z.string().optional(),
+    page: zod_1.z.coerce.number().int().min(1).default(1),
+    limit: zod_1.z.coerce.number().int().min(1).max(100).default(50),
+});
+exports.batchDeleteTasksSchema = zod_1.z.object({
+    ids: zod_1.z.array(zod_1.z.string().uuid()).min(1, '至少选择一个任务'),
+});
+exports.batchCompleteTasksSchema = zod_1.z.object({
+    ids: zod_1.z.array(zod_1.z.string().uuid()).min(1, '至少选择一个任务'),
 });
 //# sourceMappingURL=validation.js.map

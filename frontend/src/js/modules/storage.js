@@ -392,6 +392,83 @@ const Storage = (function() {
             return LinkManager.deleteCategory(id);
         },
 
+        // =============================================
+        // 任务操作方法
+        // =============================================
+
+        /**
+         * 添加任务
+         * @param {Object} taskData
+         * @returns {Promise<Object>}
+         */
+        async addTask(taskData) {
+            if (currentMode === 'api' && currentAdapter.addTask) {
+                return currentAdapter.addTask(taskData);
+            }
+            return TaskManager.add(taskData);
+        },
+
+        /**
+         * 更新任务
+         * @param {string} id
+         * @param {Object} updates
+         * @returns {Promise<Object>}
+         */
+        async updateTask(id, updates) {
+            if (currentMode === 'api' && currentAdapter.updateTask) {
+                return currentAdapter.updateTask(id, updates);
+            }
+            return TaskManager.update(id, updates);
+        },
+
+        /**
+         * 删除任务
+         * @param {string} id
+         * @returns {Promise<Object>}
+         */
+        async deleteTask(id) {
+            if (currentMode === 'api' && currentAdapter.deleteTask) {
+                return currentAdapter.deleteTask(id);
+            }
+            return TaskManager.delete(id);
+        },
+
+        /**
+         * 批量删除任务
+         * @param {Array<string>} ids
+         * @returns {Promise<Object>}
+         */
+        async batchDeleteTasks(ids) {
+            if (currentMode === 'api' && currentAdapter.batchDeleteTasks) {
+                return currentAdapter.batchDeleteTasks(ids);
+            }
+            return TaskManager.batchDelete(ids);
+        },
+
+        /**
+         * 切换任务完成状态
+         * @param {string} id
+         * @returns {Promise<Object>}
+         */
+        async toggleTaskComplete(id) {
+            if (currentMode === 'api' && currentAdapter.toggleTaskComplete) {
+                return currentAdapter.toggleTaskComplete(id);
+            }
+            return TaskManager.toggleComplete(id);
+        },
+
+        /**
+         * 批量完成任务
+         * @param {Array<string>} ids
+         * @returns {Promise<Object>}
+         */
+        async batchCompleteTasks(ids) {
+            if (currentMode === 'api' && currentAdapter.batchCompleteTasks) {
+                return currentAdapter.batchCompleteTasks(ids);
+            }
+            return TaskManager.batchComplete(ids);
+        },
+
         /**
          * 获取同步状态
          * @returns {Object}

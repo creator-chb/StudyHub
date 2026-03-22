@@ -58,6 +58,46 @@ export const batchDeleteSchema = z.object({
 });
 
 // ============================================
+// 任务验证
+// ============================================
+
+export const createTaskSchema = z.object({
+    name: z.string().min(1, '任务名称不能为空').max(100, '任务名称最多 100 个字符'),
+    description: z.string().max(500, '描述最多 500 个字符').optional(),
+    deadline: z.string().refine((val) => !isNaN(Date.parse(val)), {
+        message: '无效的截止时间',
+    }),
+    priority: z.enum(['high', 'medium', 'low']).default('medium'),
+    links: z.array(z.string().regex(urlRegex, 'URL 格式无效')).max(10, '每个任务最多关联 10 个链接').optional(),
+});
+
+export const updateTaskSchema = z.object({
+    name: z.string().min(1, '任务名称不能为空').max(100, '任务名称最多 100 个字符').optional(),
+    description: z.string().max(500, '描述最多 500 个字符').optional().nullable(),
+    deadline: z.string().refine((val) => !isNaN(Date.parse(val)), {
+        message: '无效的截止时间',
+    }).optional(),
+    priority: z.enum(['high', 'medium', 'low']).optional(),
+    links: z.array(z.string().regex(urlRegex, 'URL 格式无效')).max(10, '每个任务最多关联 10 个链接').optional(),
+});
+
+export const taskFilterSchema = z.object({
+    status: z.enum(['pending', 'completed', 'all']).default('all'),
+    priority: z.enum(['high', 'medium', 'low']).optional(),
+    search: z.string().optional(),
+    page: z.coerce.number().int().min(1).default(1),
+    limit: z.coerce.number().int().min(1).max(100).default(50),
+});
+
+export const batchDeleteTasksSchema = z.object({
+    ids: z.array(z.string().uuid()).min(1, '至少选择一个任务'),
+});
+
+export const batchCompleteTasksSchema = z.object({
+    ids: z.array(z.string().uuid()).min(1, '至少选择一个任务'),
+});
+
+// ============================================
 // 类型导出
 // ============================================
 
@@ -67,3 +107,8 @@ export type CreateLinkInput = z.infer<typeof createLinkSchema>;
 export type UpdateLinkInput = z.infer<typeof updateLinkSchema>;
 export type LinkFilterInput = z.infer<typeof linkFilterSchema>;
 export type BatchDeleteInput = z.infer<typeof batchDeleteSchema>;
+export type CreateTaskInput = z.infer<typeof createTaskSchema>;
+export type UpdateTaskInput = z.infer<typeof updateTaskSchema>;
+export type TaskFilterInput = z.infer<typeof taskFilterSchema>;
+export type BatchDeleteTasksInput = z.infer<typeof batchDeleteTasksSchema>;
+export type BatchCompleteTasksInput = z.infer<typeof batchCompleteTasksSchema>;

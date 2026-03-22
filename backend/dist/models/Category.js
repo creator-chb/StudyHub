@@ -99,7 +99,6 @@ async function countByUserId(userId) {
  * 批量更新排序
  */
 async function updateSortOrder(userId, sortOrders) {
-    const client = await (0, index_js_1.query)('SELECT 1'); // 获取连接
     // 使用单个查询批量更新
     for (const item of sortOrders) {
         await (0, index_js_1.query)('UPDATE categories SET sort_order = $1 WHERE id = $2 AND user_id = $3', [item.sort_order, item.id, userId]);

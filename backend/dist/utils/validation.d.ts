@@ -42,10 +42,58 @@ export declare const linkFilterSchema: z.ZodObject<{
 export declare const batchDeleteSchema: z.ZodObject<{
     ids: z.ZodArray<z.ZodString>;
 }, z.core.$strip>;
+export declare const createTaskSchema: z.ZodObject<{
+    name: z.ZodString;
+    description: z.ZodOptional<z.ZodString>;
+    deadline: z.ZodString;
+    priority: z.ZodDefault<z.ZodEnum<{
+        high: "high";
+        medium: "medium";
+        low: "low";
+    }>>;
+    links: z.ZodOptional<z.ZodArray<z.ZodString>>;
+}, z.core.$strip>;
+export declare const updateTaskSchema: z.ZodObject<{
+    name: z.ZodOptional<z.ZodString>;
+    description: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+    deadline: z.ZodOptional<z.ZodString>;
+    priority: z.ZodOptional<z.ZodEnum<{
+        high: "high";
+        medium: "medium";
+        low: "low";
+    }>>;
+    links: z.ZodOptional<z.ZodArray<z.ZodString>>;
+}, z.core.$strip>;
+export declare const taskFilterSchema: z.ZodObject<{
+    status: z.ZodDefault<z.ZodEnum<{
+        pending: "pending";
+        completed: "completed";
+        all: "all";
+    }>>;
+    priority: z.ZodOptional<z.ZodEnum<{
+        high: "high";
+        medium: "medium";
+        low: "low";
+    }>>;
+    search: z.ZodOptional<z.ZodString>;
+    page: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
+    limit: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
+}, z.core.$strip>;
+export declare const batchDeleteTasksSchema: z.ZodObject<{
+    ids: z.ZodArray<z.ZodString>;
+}, z.core.$strip>;
+export declare const batchCompleteTasksSchema: z.ZodObject<{
+    ids: z.ZodArray<z.ZodString>;
+}, z.core.$strip>;
 export type CreateCategoryInput = z.infer<typeof createCategorySchema>;
 export type UpdateCategoryInput = z.infer<typeof updateCategorySchema>;
 export type CreateLinkInput = z.infer<typeof createLinkSchema>;
 export type UpdateLinkInput = z.infer<typeof updateLinkSchema>;
 export type LinkFilterInput = z.infer<typeof linkFilterSchema>;
 export type BatchDeleteInput = z.infer<typeof batchDeleteSchema>;
+export type CreateTaskInput = z.infer<typeof createTaskSchema>;
+export type UpdateTaskInput = z.infer<typeof updateTaskSchema>;
+export type TaskFilterInput = z.infer<typeof taskFilterSchema>;
+export type BatchDeleteTasksInput = z.infer<typeof batchDeleteTasksSchema>;
+export type BatchCompleteTasksInput = z.infer<typeof batchCompleteTasksSchema>;
 //# sourceMappingURL=validation.d.ts.map

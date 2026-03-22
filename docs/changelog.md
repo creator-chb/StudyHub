@@ -9,6 +9,60 @@
 ## [2.0.0-dev] - 2026-03-22
 
 ### 新增 ✨
+- 📋 **任务管理后端化（Phase 3）**
+  - 任务表（tasks）和任务链接关联表（task_links）数据库设计
+  - `GET /api/v1/tasks` - 获取任务列表（支持状态、优先级筛选）
+  - `GET /api/v1/tasks/stats` - 获取任务统计信息
+  - `GET /api/v1/tasks/:id` - 获取单个任务详情
+  - `POST /api/v1/tasks` - 创建任务
+  - `PUT /api/v1/tasks/:id` - 更新任务
+  - `DELETE /api/v1/tasks/:id` - 删除任务
+  - `PATCH /api/v1/tasks/:id/complete` - 切换完成状态
+  - `POST /api/v1/tasks/batch-delete` - 批量删除
+  - `POST /api/v1/tasks/batch-complete` - 批量完成
+  - `POST /api/v1/tasks/:id/open-links` - 一键打开关联链接
+
+- 🔄 **前端任务存储适配**
+  - `ApiStorageAdapter` 新增任务 CRUD 接口对接
+  - 任务批量操作接口对接
+  - 数据格式转换（前端/后端字段映射）
+  - 同步方法扩展支持任务数据同步
+
+- 🔀 **Storage 模块任务方法代理**
+  - `addTask/updateTask/deleteTask` 任务 CRUD 方法
+  - `batchDeleteTasks/batchCompleteTasks` 批量操作方法
+  - `toggleTaskComplete` 状态切换方法
+
+### 优化 ⚡
+- 📁 **TaskManager 云端模式支持**
+  - `add/update/delete/toggleComplete/batchDelete/batchComplete` 方法现在会根据当前模式选择正确的存储适配器
+  - 遵循「单一数据入口原则」，API 模式下通过 Storage 层操作
+
+### 修复 🐛
+- 📋 **任务数据前后端同步问题**
+  - 修复 API 模式下任务数据无法正确显示的问题
+  - 修复登录后任务列表未从服务器加载的问题
+  - 修复页面刷新后已登录用户任务数据丢失的问题
+  - 新增 `TaskManager.reload()` 方法支持数据重新加载
+  - 完善登录/登出/初始化时的任务数据同步流程
+
+### 新增基础设施 🔧
+- 🗄️ **数据库扩展**
+  - 任务表（tasks）设计：支持名称、描述、截止时间、优先级、完成状态
+  - 任务链接关联表（task_links）设计：支持任务与链接的多对多关联
+  - 外键关联和索引优化
+  - 自动更新时间戳触发器
+
+- 🛡️ **数据验证层**
+  - 任务创建/更新验证 Schema（Zod）
+  - 任务筛选参数验证
+  - 批量操作参数验证
+
+---
+
+## [2.0.0-dev] - 2026-03-22
+
+### 新增 ✨
 - 🔄 **前端存储适配器（Phase 2 前端适配）**
   - 新增 `ApiStorageAdapter` 实现后端 API 存储适配器
   - 链接 CRUD 接口完整对接（创建/读取/更新/删除/批量删除/置顶）
@@ -411,4 +465,4 @@
 
 ---
 
-**最后更新**: 2026-03-22（Phase 2 前端适配完成）
+**最后更新**: 2026-03-22（Phase 3 任务管理后端化完成，任务数据同步问题修复）

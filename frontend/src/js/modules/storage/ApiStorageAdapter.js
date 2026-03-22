@@ -21,6 +21,7 @@ const ApiStorageAdapter = (function() {
     const cache = {
         links: [],
         categories: [],
+        tasks: [],
         settings: {},
         lastSync: null
     };
@@ -305,6 +306,152 @@ const ApiStorageAdapter = (function() {
     }
 
     // =============================================
+    // 任务 API 操作
+    // =============================================
+
+    /**
+     * 从服务器获取所有任务
+     * @returns {Promise<Array>}
+     */
+    async function fetchTasks() {
+        const response = await apiRequest('/tasks?limit=100');
+        const tasks = response.data.tasks || [];
+
+        // 转换为前端格式
+        return tasks.map(task => ({
+            id: task.id,
+            name: task.name,
+            time: task.deadline,
+            priority: task.priority,
+            links: task.links || [],
+            completed: task.is_completed,
+            completedAt: task.completed_at,
+            createdAt: task.created_at,
+            updatedAt: task.updated_at
+        }));
+    }
+
+    /**
+     * 创建任务
+     * @param {Object} taskData - 任务数据
+     * @returns {Promise<Object>}
+     */
+    async function createTask(taskData) {
+        const response = await apiRequest('/tasks', {
+            method: 'POST',
+            body: JSON.stringify({
+                name: taskData.name,
+                description: taskData.description || '',
+                deadline: taskData.time,
+                priority: taskData.priority || 'medium',
+                links: taskData.links || []
+            })
+        });
+
+        const task = response.data.task;
+        return {
+            id: task.id,
+            name: task.name,
+            time: task.deadline,
+            priority: task.priority,
+            links: task.links || [],
+            completed: task.is_completed,
+            completedAt: task.completed_at,
+            createdAt: task.created_at,
+            updatedAt: task.updated_at
+        };
+    }
+
+    /**
+     * 更新任务
+     * @param {string} id - 任务 ID
+     * @param {Object} updates - 更新数据
+     * @returns {Promise<Object>}
+     */
+    async function updateTask(id, updates) {
+        const body = {};
+        if (updates.name !== undefined) body.name = updates.name;
+        if (updates.description !== undefined) body.description = updates.description;
+        if (updates.time !== undefined) body.deadline = updates.time;
+        if (updates.priority !== undefined) body.priority = updates.priority;
+        if (updates.links !== undefined) body.links = updates.links;
+
+        const response = await apiRequest(`/tasks/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify(body)
+        });
+
+        const task = response.data.task;
+        return {
+            id: task.id,
+            name: task.name,
+            time: task.deadline,
+            priority: task.priority,
+            links: task.links || [],
+            completed: task.is_completed,
+            completedAt: task.completed_at,
+            createdAt: task.created_at,
+            updatedAt: task.updated_at
+        };
+    }
+
+    /**
+     * 删除任务
+     * @param {string} id - 任务 ID
+     * @returns {Promise<boolean>}
+     */
+    async function deleteTask(id) {
+        await apiRequest(`/tasks/${id}`, {
+            method: 'DELETE'
+        });
+        return true;
+    }
+
+    /**
+     * 批量删除任务
+     * @param {Array<string>} ids - 任务 ID 列表
+     * @returns {Promise<number>}
+     */
+    async function batchDeleteTasks(ids) {
+        const response = await apiRequest('/tasks/batch-delete', {
+            method: 'POST',
+            body: JSON.stringify({ ids })
+        });
+        return response.data.deletedCount;
+    }
+
+    /**
+     * 切换任务完成状态
+     * @param {string} id - 任务 ID
+     * @returns {Promise<Object>}
+     */
+    async function toggleTaskComplete(id) {
+        const response = await apiRequest(`/tasks/${id}/complete`, {
+            method: 'PATCH'
+        });
+
+        const task = response.data.task;
+        return {
+            id: task.id,
+            completed: task.is_completed,
+            completedAt: task.completed_at
+        };
+    }
+
+    /**
+     * 批量完成任务
+     * @param {Array<string>} ids - 任务 ID 列表
+     * @returns {Promise<number>}
+     */
+    async function batchCompleteTasks(ids) {
+        const response = await apiRequest('/tasks/batch-complete', {
+            method: 'POST',
+            body: JSON.stringify({ ids })
+        });
+        return response.data.updatedCount;
+    }
+
+    // =============================================
     // 覆盖抽象方法
     // =============================================
 
@@ -320,6 +467,9 @@ const ApiStorageAdapter = (function() {
         }
         if (key === 'categories') {
             return cache.categories.length > 0 ? [...cache.categories] : defaultValue;
+        }
+        if (key === 'tasks') {
+            return cache.tasks.length > 0 ? [...cache.tasks] : defaultValue;
         }
         if (key === 'settings') {
             return { ...cache.settings };
@@ -344,6 +494,11 @@ const ApiStorageAdapter = (function() {
             }
             if (key === 'categories') {
                 cache.categories = [...value];
+                this._emit(key, value);
+                return true;
+            }
+            if (key === 'tasks') {
+                cache.tasks = [...value];
                 this._emit(key, value);
                 return true;
             }
@@ -374,6 +529,11 @@ const ApiStorageAdapter = (function() {
         }
         if (key === 'categories') {
             cache.categories = [];
+            this._emit(key, null);
+            return true;
+        }
+        if (key === 'tasks') {
+            cache.tasks = [];
             this._emit(key, null);
             return true;
         }
@@ -483,13 +643,15 @@ const ApiStorageAdapter = (function() {
         console.log('[ApiStorage] 开始同步数据...');
 
         try {
-            const [links, categories] = await Promise.all([
+            const [links, categories, tasks] = await Promise.all([
                 fetchLinks(),
-                fetchCategories()
+                fetchCategories(),
+                fetchTasks()
             ]);
 
             cache.links = links;
             cache.categories = categories;
+            cache.tasks = tasks;
             cache.lastSync = new Date().toISOString();
 
             // 确保有默认分类
@@ -501,9 +663,9 @@ const ApiStorageAdapter = (function() {
                 });
             }
 
-            console.log('[ApiStorage] 同步完成，链接数:', links.length, '分类数:', categories.length);
+            console.log('[ApiStorage] 同步完成，链接数:', links.length, '分类数:', categories.length, '任务数:', tasks.length);
             
-            this._emit('sync', { links, categories });
+            this._emit('sync', { links, categories, tasks });
             return true;
         } catch (e) {
             console.error('[ApiStorage] 同步失败:', e);
@@ -629,6 +791,96 @@ const ApiStorageAdapter = (function() {
         this._emit('categories', [...cache.categories]);
         this._emit('links', [...cache.links]);
         return { success: true };
+    };
+
+    // =============================================
+    // 任务操作方法
+    // =============================================
+
+    /**
+     * 添加任务
+     * @param {Object} taskData - 任务数据
+     * @returns {Promise<Object>}
+     */
+    adapter.addTask = async function(taskData) {
+        const task = await createTask(taskData);
+        cache.tasks.push(task);
+        this._emit('tasks', [...cache.tasks]);
+        return { success: true, data: task };
+    };
+
+    /**
+     * 更新任务
+     * @param {string} id - 任务 ID
+     * @param {Object} updates - 更新数据
+     * @returns {Promise<Object>}
+     */
+    adapter.updateTask = async function(id, updates) {
+        const task = await updateTask(id, updates);
+        const index = cache.tasks.findIndex(t => t.id === id);
+        if (index !== -1) {
+            cache.tasks[index] = task;
+            this._emit('tasks', [...cache.tasks]);
+        }
+        return { success: true, data: task };
+    };
+
+    /**
+     * 删除任务
+     * @param {string} id - 任务 ID
+     * @returns {Promise<Object>}
+     */
+    adapter.deleteTask = async function(id) {
+        await deleteTask(id);
+        cache.tasks = cache.tasks.filter(t => t.id !== id);
+        this._emit('tasks', [...cache.tasks]);
+        return { success: true };
+    };
+
+    /**
+     * 批量删除任务
+     * @param {Array<string>} ids - 任务 ID 列表
+     * @returns {Promise<Object>}
+     */
+    adapter.batchDeleteTasks = async function(ids) {
+        const deletedCount = await batchDeleteTasks(ids);
+        cache.tasks = cache.tasks.filter(t => !ids.includes(t.id));
+        this._emit('tasks', [...cache.tasks]);
+        return { success: true, deletedCount };
+    };
+
+    /**
+     * 切换任务完成状态
+     * @param {string} id - 任务 ID
+     * @returns {Promise<Object>}
+     */
+    adapter.toggleTaskComplete = async function(id) {
+        const result = await toggleTaskComplete(id);
+        const task = cache.tasks.find(t => t.id === id);
+        if (task) {
+            task.completed = result.completed;
+            task.completedAt = result.completedAt;
+            this._emit('tasks', [...cache.tasks]);
+        }
+        return { success: true, data: task };
+    };
+
+    /**
+     * 批量完成任务
+     * @param {Array<string>} ids - 任务 ID 列表
+     * @returns {Promise<Object>}
+     */
+    adapter.batchCompleteTasks = async function(ids) {
+        const updatedCount = await batchCompleteTasks(ids);
+        const now = new Date().toISOString();
+        cache.tasks.forEach(task => {
+            if (ids.includes(task.id) && !task.completed) {
+                task.completed = true;
+                task.completedAt = now;
+            }
+        });
+        this._emit('tasks', [...cache.tasks]);
+        return { success: true, updatedCount };
     };
 
     /**
