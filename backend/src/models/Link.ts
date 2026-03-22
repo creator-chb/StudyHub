@@ -137,6 +137,17 @@ export async function urlExists(userId: string, url: string, excludeId?: string)
 }
 
 /**
+ * 根据 URL 查找链接
+ */
+export async function findByUrl(userId: string, url: string): Promise<Link | null> {
+    const rows = await query(
+        'SELECT * FROM links WHERE user_id = $1 AND url = $2',
+        [userId, url]
+    );
+    return (rows[0] as Link) || null;
+}
+
+/**
  * 创建新链接
  */
 export async function create(input: CreateLinkInput): Promise<Link> {

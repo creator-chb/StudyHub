@@ -7,11 +7,12 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.authenticate = authenticate;
 exports.optionalAuth = optionalAuth;
 const jwt_js_1 = require("../utils/jwt.js");
+const redis_js_1 = require("../db/redis.js");
 /**
  * JWT 认证中间件
  * 验证请求头中的 Authorization: Bearer <token>
  */
-function authenticate(req, res, next) {
+async function authenticate(req, res, next) {
     const authHeader = req.headers.authorization;
     if (!authHeader) {
         res.status(401).json({
@@ -30,6 +31,15 @@ function authenticate(req, res, next) {
     }
     const token = parts[1];
     try {
+        // 检查 Token 是否在黑名单中
+        const isBlacklisted = await (0, redis_js_1.isTokenBlacklisted)(token);
+        if (isBlacklisted) {
+            res.status(401).json({
+                success: false,
+                message: '令牌已被撤销，请重新登录',
+            });
+            return;
+        }
         const payload = (0, jwt_js_1.verifyToken)(token);
         req.user = payload;
         next();

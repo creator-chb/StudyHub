@@ -19,6 +19,12 @@ interface Config {
         port: number;
         database: string;
     };
+    redis: {
+        host: string;
+        port: number;
+        password: string;
+        db: number;
+    };
     jwt: {
         secret: string;
         expiresIn: string;
@@ -36,6 +42,12 @@ const config: Config = {
         host: process.env.DB_HOST || 'localhost',
         port: parseInt(process.env.DB_PORT || '5432', 10),
         database: process.env.DB_NAME || 'studyhub',
+    },
+    redis: {
+        host: process.env.REDIS_HOST || 'localhost',
+        port: parseInt(process.env.REDIS_PORT || '6379', 10),
+        password: process.env.REDIS_PASSWORD || '',
+        db: parseInt(process.env.REDIS_DB || '0', 10),
     },
     jwt: {
         secret: process.env.JWT_SECRET || 'default-secret-change-me',

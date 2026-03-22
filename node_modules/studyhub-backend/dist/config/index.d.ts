@@ -13,6 +13,12 @@ interface Config {
         port: number;
         database: string;
     };
+    redis: {
+        host: string;
+        port: number;
+        password: string;
+        db: number;
+    };
     jwt: {
         secret: string;
         expiresIn: string;

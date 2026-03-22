@@ -26,7 +26,7 @@ export interface CreateUserInput {
  */
 export async function findByEmail(email: string): Promise<User | null> {
     const rows = await query('SELECT * FROM users WHERE email = $1', [email]);
-    return rows[0] || null;
+    return (rows[0] as User) || null;
 }
 
 /**
@@ -34,7 +34,7 @@ export async function findByEmail(email: string): Promise<User | null> {
  */
 export async function findById(id: string): Promise<User | null> {
     const rows = await query('SELECT * FROM users WHERE id = $1', [id]);
-    return rows[0] || null;
+    return (rows[0] as User) || null;
 }
 
 /**
@@ -42,7 +42,7 @@ export async function findById(id: string): Promise<User | null> {
  */
 export async function findByUsername(username: string): Promise<User | null> {
     const rows = await query('SELECT * FROM users WHERE username = $1', [username]);
-    return rows[0] || null;
+    return (rows[0] as User) || null;
 }
 
 /**
@@ -56,7 +56,7 @@ export async function create(input: CreateUserInput): Promise<User> {
         [input.email, input.username, passwordHash]
     );
 
-    return rows[0];
+    return rows[0] as User;
 }
 
 /**

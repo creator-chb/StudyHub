@@ -70,6 +70,17 @@ export async function nameExists(userId: string, name: string, excludeId?: strin
 }
 
 /**
+ * 根据名称查找分类
+ */
+export async function findByName(userId: string, name: string): Promise<Category | null> {
+    const rows = await query(
+        'SELECT * FROM categories WHERE user_id = $1 AND name = $2',
+        [userId, name]
+    );
+    return (rows[0] as Category) || null;
+}
+
+/**
  * 创建新分类
  */
 export async function create(input: CreateCategoryInput): Promise<Category> {

@@ -39,6 +39,7 @@ export interface UpdateTaskInput {
     deadline?: Date | string;
     priority?: 'high' | 'medium' | 'low';
     links?: string[];
+    is_completed?: boolean;
 }
 export interface TaskFilter {
     status?: 'pending' | 'completed' | 'all';

@@ -1151,3 +1151,248 @@ input[type="file"].hidden {
     background: rgba(245, 158, 11, 0.1);
     color: #fcd34d;
 }
+
+/* =========================
+   数据迁移工具样式
+========================= */
+
+.migration-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin: 20px 0;
+}
+
+.migration-stat-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+    background: var(--bg-primary);
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+}
+
+.migration-stat-item .stat-icon {
+    font-size: 32px;
+    margin-bottom: 8px;
+}
+
+.migration-stat-item .stat-label {
+    font-size: 14px;
+    color: var(--text-secondary);
+    margin-bottom: 4px;
+}
+
+.migration-stat-item .stat-value {
+    font-size: 24px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.migration-stat-item .stat-size {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 4px;
+}
+
+.migration-empty {
+    text-align: center;
+    padding: 40px 20px;
+}
+
+.migration-empty .migration-icon {
+    font-size: 48px;
+    margin-bottom: 16px;
+}
+
+.migration-empty p {
+    color: var(--text-secondary);
+    margin: 8px 0;
+}
+
+.migration-hint {
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 14px;
+    margin-top: 16px;
+}
+
+/* 迁移策略选择 */
+.migration-strategy {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin: 20px 0;
+}
+
+.strategy-option {
+    display: flex;
+    align-items: flex-start;
+    padding: 16px;
+    border: 2px solid var(--border-color);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.strategy-option:hover {
+    border-color: var(--primary-color);
+    background: var(--bg-primary);
+}
+
+.strategy-option.selected {
+    border-color: var(--primary-color);
+    background: rgba(79, 140, 255, 0.05);
+}
+
+.strategy-option input[type="radio"] {
+    margin-right: 12px;
+    margin-top: 4px;
+}
+
+.strategy-content {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.strategy-icon {
+    font-size: 24px;
+    margin-bottom: 4px;
+}
+
+.strategy-title {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.strategy-desc {
+    font-size: 14px;
+    color: var(--text-secondary);
+}
+
+/* 迁移进度 */
+.migration-progress {
+    padding: 40px 20px;
+    text-align: center;
+}
+
+.progress-bar {
+    width: 100%;
+    height: 8px;
+    background: var(--border-color);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 20px;
+}
+
+.progress-fill {
+    height: 100%;
+    background: var(--primary-color);
+    border-radius: 4px;
+    transition: width 0.3s ease;
+}
+
+.progress-text {
+    color: var(--text-secondary);
+    font-size: 14px;
+}
+
+/* 迁移结果 */
+.migration-result {
+    text-align: center;
+    padding: 30px 20px;
+}
+
+.migration-result .result-icon {
+    font-size: 64px;
+    margin-bottom: 16px;
+}
+
+.migration-result.success .result-icon {
+    color: var(--success-color);
+}
+
+.migration-result.error .result-icon {
+    color: var(--danger-color);
+}
+
+.result-message {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 20px;
+}
+
+.result-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin: 20px 0;
+}
+
+.result-stat {
+    display: flex;
+    flex-direction: column;
+    padding: 16px;
+    background: var(--bg-primary);
+    border-radius: 8px;
+}
+
+.result-stat .stat-label {
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+}
+
+.result-stat .stat-detail {
+    font-size: 14px;
+    color: var(--text-secondary);
+}
+
+.result-errors {
+    margin-top: 20px;
+    padding: 16px;
+    background: rgba(255, 92, 92, 0.1);
+    border-radius: 8px;
+    text-align: left;
+}
+
+.result-errors p {
+    font-weight: 600;
+    color: var(--danger-color);
+    margin-bottom: 8px;
+}
+
+.result-errors ul {
+    margin: 0;
+    padding-left: 20px;
+}
+
+.result-errors li {
+    color: var(--text-secondary);
+    font-size: 14px;
+    margin: 4px 0;
+}
+
+/* 深色主题适配 */
+[data-theme="dark"] .migration-stat-item {
+    background: var(--bg-secondary);
+}
+
+[data-theme="dark"] .strategy-option:hover {
+    background: var(--bg-secondary);
+}
+
+[data-theme="dark"] .strategy-option.selected {
+    background: rgba(79, 140, 255, 0.1);
+}
+
+[data-theme="dark"] .result-stat {
+    background: var(--bg-secondary);
+}
+
+[data-theme="dark"] .result-errors {
+    background: rgba(255, 92, 92, 0.15);
+}

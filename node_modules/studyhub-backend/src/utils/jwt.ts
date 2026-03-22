@@ -17,7 +17,7 @@ export interface TokenPayload {
  */
 export function generateAccessToken(payload: TokenPayload): string {
     return jwt.sign(payload, config.jwt.secret, {
-        expiresIn: config.jwt.expiresIn,
+        expiresIn: config.jwt.expiresIn as jwt.SignOptions['expiresIn'],
     });
 }
 
@@ -26,7 +26,7 @@ export function generateAccessToken(payload: TokenPayload): string {
  */
 export function generateRefreshToken(payload: TokenPayload): string {
     return jwt.sign(payload, config.jwt.secret, {
-        expiresIn: config.jwt.refreshExpiresIn,
+        expiresIn: config.jwt.refreshExpiresIn as jwt.SignOptions['expiresIn'],
     });
 }
 

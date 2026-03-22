@@ -21,6 +21,12 @@ const config = {
         port: parseInt(process.env.DB_PORT || '5432', 10),
         database: process.env.DB_NAME || 'studyhub',
     },
+    redis: {
+        host: process.env.REDIS_HOST || 'localhost',
+        port: parseInt(process.env.REDIS_PORT || '6379', 10),
+        password: process.env.REDIS_PASSWORD || '',
+        db: parseInt(process.env.REDIS_DB || '0', 10),
+    },
     jwt: {
         secret: process.env.JWT_SECRET || 'default-secret-change-me',
         expiresIn: process.env.JWT_EXPIRES_IN || '7d',

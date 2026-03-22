@@ -7,6 +7,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.findByUserId = findByUserId;
 exports.findById = findById;
 exports.urlExists = urlExists;
+exports.findByUrl = findByUrl;
 exports.create = create;
 exports.update = update;
 exports.remove = remove;
@@ -74,6 +75,13 @@ async function urlExists(userId, url, excludeId) {
     }
     const rows = await (0, index_js_1.query)(sql, params);
     return rows.length > 0;
+}
+/**
+ * 根据 URL 查找链接
+ */
+async function findByUrl(userId, url) {
+    const rows = await (0, index_js_1.query)('SELECT * FROM links WHERE user_id = $1 AND url = $2', [userId, url]);
+    return rows[0] || null;
 }
 /**
  * 创建新链接

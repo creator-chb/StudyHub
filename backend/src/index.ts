@@ -11,8 +11,11 @@ import authRouter from './routes/auth/index.js';
 import categoriesRouter from './routes/categories.js';
 import linksRouter from './routes/links.js';
 import tasksRouter from './routes/tasks.js';
+import dataRouter from './routes/data.js';
 import { requestLogger } from './middleware/logger.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
+import { authRateLimiter, apiRateLimiter } from './middleware/rateLimiter.js';
+import { linksCache, categoriesCache, tasksCache } from './middleware/cache.js';
 
 const app: Express = express();
 
@@ -38,10 +41,11 @@ app.use(requestLogger);
 // =============================================
 
 app.use('/api', healthRouter);
-app.use('/api/v1/auth', authRouter);
-app.use('/api/v1/categories', categoriesRouter);
-app.use('/api/v1/links', linksRouter);
-app.use('/api/v1/tasks', tasksRouter);
+app.use('/api/v1/auth', authRateLimiter, authRouter);
+app.use('/api/v1/categories', apiRateLimiter, categoriesCache, categoriesRouter);
+app.use('/api/v1/links', apiRateLimiter, linksCache, linksRouter);
+app.use('/api/v1/tasks', apiRateLimiter, tasksCache, tasksRouter);
+app.use('/api/v1/data', apiRateLimiter, dataRouter);
 
 // 404 处理
 app.use(notFoundHandler);
@@ -56,7 +60,7 @@ app.use(errorHandler);
 app.listen(config.port, () => {
     console.log(`StudyHub 后端服务运行在 http://localhost:${config.port}`);
     console.log(`允许跨域来源：${config.frontendUrl}`);
-    console.log(`当前阶段：Phase 3 - 任务管理后端化`);
+    console.log(`当前阶段：Phase 4 - 数据迁移与导入导出`);
     console.log(`环境：${config.nodeEnv}`);
 });
 

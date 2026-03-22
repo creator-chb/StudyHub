@@ -5,6 +5,7 @@
 
 import { Request, Response, NextFunction } from 'express';
 import { verifyToken, TokenPayload } from '../utils/jwt.js';
+import { isTokenBlacklisted } from '../db/redis.js';
 
 export interface AuthRequest extends Request {
     user?: TokenPayload;
@@ -14,7 +15,7 @@ export interface AuthRequest extends Request {
  * JWT 认证中间件
  * 验证请求头中的 Authorization: Bearer <token>
  */
-export function authenticate(req: AuthRequest, res: Response, next: NextFunction): void {
+export async function authenticate(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
     const authHeader = req.headers.authorization;
 
     if (!authHeader) {
@@ -37,6 +38,16 @@ export function authenticate(req: AuthRequest, res: Response, next: NextFunction
     const token = parts[1];
 
     try {
+        // 检查 Token 是否在黑名单中
+        const isBlacklisted = await isTokenBlacklisted(token);
+        if (isBlacklisted) {
+            res.status(401).json({
+                success: false,
+                message: '令牌已被撤销，请重新登录',
+            });
+            return;
+        }
+
         const payload = verifyToken(token);
         req.user = payload;
         next();

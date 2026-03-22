@@ -7,6 +7,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.findByUserId = findByUserId;
 exports.findById = findById;
 exports.nameExists = nameExists;
+exports.findByName = findByName;
 exports.create = create;
 exports.update = update;
 exports.remove = remove;
@@ -39,6 +40,13 @@ async function nameExists(userId, name, excludeId) {
     }
     const rows = await (0, index_js_1.query)(sql, params);
     return rows.length > 0;
+}
+/**
+ * 根据名称查找分类
+ */
+async function findByName(userId, name) {
+    const rows = await (0, index_js_1.query)('SELECT * FROM categories WHERE user_id = $1 AND name = $2', [userId, name]);
+    return rows[0] || null;
 }
 /**
  * 创建新分类

@@ -36,12 +36,17 @@ var __importStar = (this && this.__importStar) || (function () {
         return result;
     };
 })();
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const UserModel = __importStar(require("../../models/User.js"));
 const RefreshTokenModel = __importStar(require("../../models/RefreshToken.js"));
 const jwt_js_1 = require("../../utils/jwt.js");
 const auth_js_1 = require("../../middleware/auth.js");
+const redis_js_1 = require("../../db/redis.js");
+const index_js_1 = __importDefault(require("../../config/index.js"));
 const router = (0, express_1.Router)();
 /**
  * POST /api/v1/auth/register
@@ -105,6 +110,9 @@ router.post('/register', async (req, res) => {
         const expiresAt = new Date();
         expiresAt.setDate(expiresAt.getDate() + 30);
         await RefreshTokenModel.save(user.id, refreshToken, expiresAt);
+        // 保存会话到 Redis
+        const expiresInSeconds = parseInt(index_js_1.default.jwt.expiresIn) * 24 * 60 * 60 || 7 * 24 * 60 * 60;
+        await (0, redis_js_1.saveSession)(accessToken, user.id, expiresInSeconds);
         res.status(201).json({
             success: true,
             message: '注册成功',
@@ -173,6 +181,9 @@ router.post('/login', async (req, res) => {
         const expiresAt = new Date();
         expiresAt.setDate(expiresAt.getDate() + 30);
         await RefreshTokenModel.save(user.id, refreshToken, expiresAt);
+        // 保存会话到 Redis
+        const expiresInSeconds = parseInt(index_js_1.default.jwt.expiresIn) * 24 * 60 * 60 || 7 * 24 * 60 * 60;
+        await (0, redis_js_1.saveSession)(accessToken, user.id, expiresInSeconds);
         res.json({
             success: true,
             message: '登录成功',
@@ -312,8 +323,17 @@ router.get('/me', auth_js_1.authenticate, async (req, res) => {
 router.post('/logout', auth_js_1.authenticate, async (req, res) => {
     try {
         const userId = req.user.userId;
+        const authHeader = req.headers.authorization;
+        const token = authHeader?.split(' ')[1];
         // 删除用户的刷新令牌
         await RefreshTokenModel.remove(userId);
+        // 从 Redis 删除会话
+        if (token) {
+            await (0, redis_js_1.deleteSession)(token);
+            // 将 Token 加入黑名单（防止在过期前被使用）
+            const expiresInSeconds = parseInt(index_js_1.default.jwt.expiresIn) * 24 * 60 * 60 || 7 * 24 * 60 * 60;
+            await (0, redis_js_1.blacklistToken)(token, expiresInSeconds);
+        }
         res.json({
             success: true,
             message: '登出成功',

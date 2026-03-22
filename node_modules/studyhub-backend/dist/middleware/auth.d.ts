@@ -11,7 +11,7 @@ export interface AuthRequest extends Request {
  * JWT 认证中间件
  * 验证请求头中的 Authorization: Bearer <token>
  */
-export declare function authenticate(req: AuthRequest, res: Response, next: NextFunction): void;
+export declare function authenticate(req: AuthRequest, res: Response, next: NextFunction): Promise<void>;
 /**
  * 可选的认证中间件
  * 如果提供了令牌则验证，不提供也不报错

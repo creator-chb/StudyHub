@@ -21,7 +21,7 @@ export async function save(userId: string, token: string, expiresAt: Date): Prom
         'INSERT INTO refresh_tokens (user_id, token, expires_at) VALUES ($1, $2, $3) RETURNING *',
         [userId, token, expiresAt]
     );
-    return rows[0];
+    return rows[0] as RefreshToken;
 }
 
 /**
@@ -32,7 +32,7 @@ export async function find(token: string): Promise<RefreshToken | null> {
         'SELECT * FROM refresh_tokens WHERE token = $1 AND expires_at > NOW()',
         [token]
     );
-    return rows[0] || null;
+    return (rows[0] as RefreshToken) || null;
 }
 
 /**

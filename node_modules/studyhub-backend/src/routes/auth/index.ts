@@ -8,6 +8,8 @@ import * as UserModel from '../../models/User.js';
 import * as RefreshTokenModel from '../../models/RefreshToken.js';
 import { generateAccessToken, generateRefreshToken, verifyToken, TokenPayload } from '../../utils/jwt.js';
 import { authenticate, AuthRequest } from '../../middleware/auth.js';
+import { saveSession, deleteSession, blacklistToken } from '../../db/redis.js';
+import config from '../../config/index.js';
 
 const router = Router();
 
@@ -82,6 +84,10 @@ router.post('/register', async (req: Request, res: Response) => {
         expiresAt.setDate(expiresAt.getDate() + 30);
         await RefreshTokenModel.save(user.id, refreshToken, expiresAt);
 
+        // 保存会话到 Redis
+        const expiresInSeconds = parseInt(config.jwt.expiresIn) * 24 * 60 * 60 || 7 * 24 * 60 * 60;
+        await saveSession(accessToken, user.id, expiresInSeconds);
+
         res.status(201).json({
             success: true,
             message: '注册成功',
@@ -155,6 +161,10 @@ router.post('/login', async (req: Request, res: Response) => {
         const expiresAt = new Date();
         expiresAt.setDate(expiresAt.getDate() + 30);
         await RefreshTokenModel.save(user.id, refreshToken, expiresAt);
+
+        // 保存会话到 Redis
+        const expiresInSeconds = parseInt(config.jwt.expiresIn) * 24 * 60 * 60 || 7 * 24 * 60 * 60;
+        await saveSession(accessToken, user.id, expiresInSeconds);
 
         res.json({
             success: true,
@@ -303,9 +313,19 @@ router.get('/me', authenticate, async (req: AuthRequest, res: Response) => {
 router.post('/logout', authenticate, async (req: AuthRequest, res: Response) => {
     try {
         const userId = req.user!.userId;
+        const authHeader = req.headers.authorization;
+        const token = authHeader?.split(' ')[1];
 
         // 删除用户的刷新令牌
         await RefreshTokenModel.remove(userId);
+
+        // 从 Redis 删除会话
+        if (token) {
+            await deleteSession(token);
+            // 将 Token 加入黑名单（防止在过期前被使用）
+            const expiresInSeconds = parseInt(config.jwt.expiresIn) * 24 * 60 * 60 || 7 * 24 * 60 * 60;
+            await blacklistToken(token, expiresInSeconds);
+        }
 
         res.json({
             success: true,

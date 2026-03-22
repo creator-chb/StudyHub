@@ -59,6 +59,10 @@ export declare function findById(id: string, userId: string): Promise<LinkWithCa
  */
 export declare function urlExists(userId: string, url: string, excludeId?: string): Promise<boolean>;
 /**
+ * 根据 URL 查找链接
+ */
+export declare function findByUrl(userId: string, url: string): Promise<Link | null>;
+/**
  * 创建新链接
  */
 export declare function create(input: CreateLinkInput): Promise<Link>;

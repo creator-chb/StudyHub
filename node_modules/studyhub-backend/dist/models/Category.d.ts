@@ -38,6 +38,10 @@ export declare function findById(id: string, userId: string): Promise<Category |
  */
 export declare function nameExists(userId: string, name: string, excludeId?: string): Promise<boolean>;
 /**
+ * 根据名称查找分类
+ */
+export declare function findByName(userId: string, name: string): Promise<Category | null>;
+/**
  * 创建新分类
  */
 export declare function create(input: CreateCategoryInput): Promise<Category>;

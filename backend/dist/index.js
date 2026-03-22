@@ -15,8 +15,11 @@ const index_js_2 = __importDefault(require("./routes/auth/index.js"));
 const categories_js_1 = __importDefault(require("./routes/categories.js"));
 const links_js_1 = __importDefault(require("./routes/links.js"));
 const tasks_js_1 = __importDefault(require("./routes/tasks.js"));
+const data_js_1 = __importDefault(require("./routes/data.js"));
 const logger_js_1 = require("./middleware/logger.js");
 const errorHandler_js_1 = require("./middleware/errorHandler.js");
+const rateLimiter_js_1 = require("./middleware/rateLimiter.js");
+const cache_js_1 = require("./middleware/cache.js");
 const app = (0, express_1.default)();
 // =============================================
 // 中间件
@@ -35,10 +38,11 @@ app.use(logger_js_1.requestLogger);
 // 路由
 // =============================================
 app.use('/api', health_js_1.default);
-app.use('/api/v1/auth', index_js_2.default);
-app.use('/api/v1/categories', categories_js_1.default);
-app.use('/api/v1/links', links_js_1.default);
-app.use('/api/v1/tasks', tasks_js_1.default);
+app.use('/api/v1/auth', rateLimiter_js_1.authRateLimiter, index_js_2.default);
+app.use('/api/v1/categories', rateLimiter_js_1.apiRateLimiter, cache_js_1.categoriesCache, categories_js_1.default);
+app.use('/api/v1/links', rateLimiter_js_1.apiRateLimiter, cache_js_1.linksCache, links_js_1.default);
+app.use('/api/v1/tasks', rateLimiter_js_1.apiRateLimiter, cache_js_1.tasksCache, tasks_js_1.default);
+app.use('/api/v1/data', rateLimiter_js_1.apiRateLimiter, data_js_1.default);
 // 404 处理
 app.use(errorHandler_js_1.notFoundHandler);
 // 全局错误处理
@@ -49,7 +53,7 @@ app.use(errorHandler_js_1.errorHandler);
 app.listen(index_js_1.default.port, () => {
     console.log(`StudyHub 后端服务运行在 http://localhost:${index_js_1.default.port}`);
     console.log(`允许跨域来源：${index_js_1.default.frontendUrl}`);
-    console.log(`当前阶段：Phase 3 - 任务管理后端化`);
+    console.log(`当前阶段：Phase 4 - 数据迁移与导入导出`);
     console.log(`环境：${index_js_1.default.nodeEnv}`);
 });
 exports.default = app;
