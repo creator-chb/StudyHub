@@ -93,15 +93,23 @@ const Renderer = (function() {
         nameEl.addEventListener('click', () => window.open(link.url, '_blank'));
 
         const pinBtn = card.querySelector('.pin-btn');
-        pinBtn.addEventListener('click', (e) => {
+        pinBtn.addEventListener('click', async (e) => {
             e.stopPropagation();
-            LinkManager.togglePin(link.id);
+            try {
+                const result = await LinkManager.togglePin(link.id);
+                if (result.success) {
+                    Toast.success(result.data.pinned ? '已置顶' : '已取消置顶');
+                } else {
+                    Toast.error(result.errors?.[0] || '操作失败');
+                }
+            } catch (e) {
+                Toast.error('操作失败: ' + e.message);
+            }
         });
 
         const editBtn = card.querySelector('.btn-edit');
         editBtn.addEventListener('click', () => {
-            LinkManager.setEditingId(link.id);
-            App.openLinkModal();
+            App.openLinkModal(link.id);
         });
 
         const deleteBtn = card.querySelector('.btn-delete');
@@ -116,8 +124,16 @@ const Renderer = (function() {
             });
             
             if (result.confirmed) {
-                LinkManager.delete(link.id);
-                Toast.success('链接已删除');
+                try {
+                    const deleteResult = await LinkManager.delete(link.id);
+                    if (deleteResult.success) {
+                        Toast.success('链接已删除');
+                    } else {
+                        Toast.error(deleteResult.errors?.[0] || '删除失败');
+                    }
+                } catch (e) {
+                    Toast.error('删除失败: ' + e.message);
+                }
             }
         });
 
@@ -208,8 +224,7 @@ const Renderer = (function() {
 
         const editBtn = card.querySelector('.btn-edit');
         editBtn.addEventListener('click', () => {
-            TaskManager.setEditingId(task.id);
-            App.openTaskModal();
+            App.openTaskModal(task.id);
         });
 
         const deleteBtn = card.querySelector('.btn-delete');

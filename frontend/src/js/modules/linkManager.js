@@ -159,7 +159,7 @@ const LinkManager = (function() {
         /**
          * 添加链接
          * @param {Object} linkData - 链接数据
-         * @returns {Object} 操作结果
+         * @returns {Object|Promise<Object>} 操作结果
          */
         add(linkData) {
             const link = {
@@ -182,6 +182,20 @@ const LinkManager = (function() {
                 return { success: false, errors: [`链接数量已达上限 (${maxLinks})`] };
             }
 
+            // 检查是否为 API 模式
+            if (Storage.isApiMode()) {
+                // API 模式：返回 Promise
+                return Storage.addLink(linkData).then(result => {
+                    if (result.success) {
+                        // 更新本地缓存
+                        links.push(result.data);
+                        notifyListeners();
+                    }
+                    return result;
+                });
+            }
+
+            // 本地模式：同步操作
             links.push(link);
             saveData();
 
@@ -192,7 +206,7 @@ const LinkManager = (function() {
          * 更新链接
          * @param {string} id - 链接 ID
          * @param {Object} updates - 更新数据
-         * @returns {Object} 操作结果
+         * @returns {Object|Promise<Object>} 操作结果
          */
         update(id, updates) {
             const index = links.findIndex(l => l.id === id);
@@ -212,6 +226,19 @@ const LinkManager = (function() {
                 return { success: false, errors: validation.errors };
             }
 
+            // 检查是否为 API 模式
+            if (Storage.isApiMode()) {
+                // API 模式：返回 Promise
+                return Storage.updateLink(id, updates).then(result => {
+                    if (result.success) {
+                        links[index] = result.data;
+                        notifyListeners();
+                    }
+                    return result;
+                });
+            }
+
+            // 本地模式：同步操作
             links[index] = updatedLink;
             saveData();
 
@@ -221,7 +248,7 @@ const LinkManager = (function() {
         /**
          * 删除链接
          * @param {string} id - 链接 ID
-         * @returns {Object} 操作结果
+         * @returns {Object|Promise<Object>} 操作结果
          */
         delete(id) {
             const index = links.findIndex(l => l.id === id);
@@ -229,6 +256,19 @@ const LinkManager = (function() {
                 return { success: false, errors: ['链接不存在'] };
             }
 
+            // 检查是否为 API 模式
+            if (Storage.isApiMode()) {
+                // API 模式：返回 Promise
+                return Storage.deleteLink(id).then(result => {
+                    if (result.success) {
+                        links.splice(index, 1);
+                        notifyListeners();
+                    }
+                    return result;
+                });
+            }
+
+            // 本地模式：同步操作
             links.splice(index, 1);
             saveData();
 
@@ -238,7 +278,7 @@ const LinkManager = (function() {
         /**
          * 切换置顶状态
          * @param {string} id - 链接 ID
-         * @returns {Object} 操作结果
+         * @returns {Object|Promise<Object>} 操作结果
          */
         togglePin(id) {
             const link = links.find(l => l.id === id);
@@ -246,6 +286,19 @@ const LinkManager = (function() {
                 return { success: false, errors: ['链接不存在'] };
             }
 
+            // 检查是否为 API 模式
+            if (Storage.isApiMode()) {
+                return Storage.toggleLinkPin(id).then(result => {
+                    if (result.success) {
+                        link.pinned = result.data.pinned;
+                        link.pinnedAt = result.data.pinnedAt;
+                        notifyListeners();
+                    }
+                    return result;
+                });
+            }
+
+            // 本地模式：同步操作
             link.pinned = !link.pinned;
             link.pinnedAt = link.pinned ? Date.now() : null;
             saveData();
@@ -256,9 +309,21 @@ const LinkManager = (function() {
         /**
          * 批量删除链接
          * @param {Array} ids - 链接 ID 列表
-         * @returns {Object} 操作结果
+         * @returns {Object|Promise<Object>} 操作结果
          */
         batchDelete(ids) {
+            // 检查是否为 API 模式
+            if (Storage.isApiMode()) {
+                return Storage.batchDeleteLinks(ids).then(result => {
+                    if (result.success) {
+                        links = links.filter(l => !ids.includes(l.id));
+                        notifyListeners();
+                    }
+                    return result;
+                });
+            }
+
+            // 本地模式：同步操作
             const initialCount = links.length;
             links = links.filter(l => !ids.includes(l.id));
             const deletedCount = initialCount - links.length;
@@ -362,6 +427,16 @@ const LinkManager = (function() {
          */
         unsubscribe(callback) {
             listeners.delete(callback);
+        },
+
+        /**
+         * 重新从存储加载数据
+         * 用于存储模式切换后刷新数据
+         */
+        reload() {
+            console.log('[LinkManager] 重新加载数据...');
+            loadData();
+            notifyListeners();
         },
 
         /**

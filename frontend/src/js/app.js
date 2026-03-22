@@ -77,44 +77,8 @@ const App = (function() {
         // 初始化认证模块
         Auth.init();
 
-        // 获取头部操作区域
-        const headerActions = document.querySelector('.app-actions');
-        if (!headerActions) return;
-
-        // 创建登录按钮
-        const loginBtn = document.createElement('button');
-        loginBtn.id = 'btnLogin';
-        loginBtn.className = 'btn-secondary';
-        loginBtn.textContent = '登录';
-        loginBtn.addEventListener('click', () => Auth.openLogin());
-        headerActions.appendChild(loginBtn);
-
-        // 创建注册按钮
-        const registerBtn = document.createElement('button');
-        registerBtn.id = 'btnRegister';
-        registerBtn.className = 'btn-secondary';
-        registerBtn.textContent = '注册';
-        registerBtn.addEventListener('click', () => Auth.openRegister());
-        headerActions.appendChild(registerBtn);
-
-        // 监听认证状态变化
-        Auth.subscribe((event, data) => {
-            if (event === 'login' || event === 'register') {
-                // 隐藏登录/注册按钮
-                loginBtn.style.display = 'none';
-                registerBtn.style.display = 'none';
-            } else if (event === 'logout') {
-                // 显示登录/注册按钮
-                loginBtn.style.display = '';
-                registerBtn.style.display = '';
-            }
-        });
-
-        // 根据认证状态显示/隐藏按钮
-        if (Auth.isAuthenticated()) {
-            loginBtn.style.display = 'none';
-            registerBtn.style.display = 'none';
-        }
+        // 注意：登录/注册按钮由各入口文件（index.html）自行创建
+        // 这里只处理认证状态变化的通用逻辑
     }
 
     /**
@@ -332,27 +296,27 @@ const App = (function() {
                     {
                         text: id ? '保存' : '添加',
                         primary: true,
-                        onClick: () => {
+                        onClick: async () => {
                             const name = document.getElementById('modalLinkName').value.trim();
                             const url = document.getElementById('modalLinkUrl').value.trim();
                             const categoryId = document.getElementById('modalLinkCategory').value;
 
-                            if (id) {
-                                const result = LinkManager.update(id, { name, url, categoryId });
+                            try {
+                                let result;
+                                if (id) {
+                                    result = await LinkManager.update(id, { name, url, categoryId });
+                                } else {
+                                    result = await LinkManager.add({ name, url, categoryId });
+                                }
+                                
                                 if (result.success) {
-                                    Toast.success('链接更新成功');
+                                    Toast.success(id ? '链接更新成功' : '链接添加成功');
                                     Modal.close('linkModal');
                                 } else {
                                     Toast.error(result.errors[0]);
                                 }
-                            } else {
-                                const result = LinkManager.add({ name, url, categoryId });
-                                if (result.success) {
-                                    Toast.success('链接添加成功');
-                                    Modal.close('linkModal');
-                                } else {
-                                    Toast.error(result.errors[0]);
-                                }
+                            } catch (e) {
+                                Toast.error('操作失败: ' + e.message);
                             }
                         }
                     }
@@ -547,7 +511,17 @@ const App = (function() {
                 tasks: TaskManager.getStats(),
                 storage: Storage.getUsage()
             };
-        }
+        },
+
+        /**
+         * 渲染链接列表
+         */
+        renderLinks,
+
+        /**
+         * 渲染任务列表
+         */
+        renderTasks
     };
 })();
 

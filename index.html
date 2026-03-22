@@ -97,31 +97,37 @@
     <div id="toastContainer" class="toast-container"></div>
 
     <!-- 脚本加载（顺序重要） -->
-    <script src="frontend/src/js/modules/config.js"></script>
-    <script src="frontend/src/js/modules/utils.js"></script>
-    <script src="frontend/src/js/modules/errorHandler.js"></script>
+    <script src="frontend/src/js/modules/config.js?v=2"></script>
+    <script src="frontend/src/js/modules/utils.js?v=2"></script>
+    <script src="frontend/src/js/modules/errorHandler.js?v=2"></script>
     <!-- 存储抽象层（Phase 0 新增） -->
-    <script src="frontend/src/js/modules/storage/AbstractStorage.js"></script>
-    <script src="frontend/src/js/modules/storage/LocalStorageAdapter.js"></script>
-    <script src="frontend/src/js/modules/storage.js"></script>
+    <script src="frontend/src/js/modules/storage/AbstractStorage.js?v=2"></script>
+    <script src="frontend/src/js/modules/storage/LocalStorageAdapter.js?v=2"></script>
+    <script src="frontend/src/js/modules/storage/ApiStorageAdapter.js?v=2"></script>
+    <script src="frontend/src/js/modules/storage.js?v=2"></script>
     <!-- API 客户端（Phase 1 新增） -->
-    <script src="frontend/src/js/modules/api.js"></script>
-    <script src="frontend/src/js/modules/auth.js"></script>
+    <script src="frontend/src/js/modules/api.js?v=2"></script>
+    <script src="frontend/src/js/modules/auth.js?v=2"></script>
+    <!-- 同步设置（Phase 2 新增） -->
+    <script src="frontend/src/js/modules/syncSettings.js?v=2"></script>
     <!-- UI 模块 -->
-    <script src="frontend/src/js/modules/toast.js"></script>
-    <script src="frontend/src/js/modules/modal.js"></script>
-    <script src="frontend/src/js/modules/theme.js"></script>
-    <script src="frontend/src/js/modules/keyboard.js"></script>
-    <script src="frontend/src/js/modules/touch.js"></script>
+    <script src="frontend/src/js/modules/toast.js?v=2"></script>
+    <script src="frontend/src/js/modules/modal.js?v=2"></script>
+    <script src="frontend/src/js/modules/theme.js?v=2"></script>
+    <script src="frontend/src/js/modules/keyboard.js?v=2"></script>
+    <script src="frontend/src/js/modules/touch.js?v=2"></script>
     <!-- 业务模块 -->
-    <script src="frontend/src/js/modules/linkManager.js"></script>
-    <script src="frontend/src/js/modules/taskManager.js"></script>
-    <script src="frontend/src/js/modules/renderer.js"></script>
-    <script src="frontend/src/js/app.js"></script>
+    <script src="frontend/src/js/modules/linkManager.js?v=2"></script>
+    <script src="frontend/src/js/modules/taskManager.js?v=2"></script>
+    <script src="frontend/src/js/modules/renderer.js?v=2"></script>
+    <script src="frontend/src/js/app.js?v=2"></script>
 
     <!-- 绑定按钮事件 -->
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', async () => {
+            // 初始化存储模块（必须在其他模块之前）
+            await Storage.init();
+
             // 初始化认证模块
             Auth.init();
 
@@ -141,16 +147,52 @@
             registerBtn.addEventListener('click', () => Auth.openRegister());
             headerActions.appendChild(registerBtn);
 
+            // 同步设置按钮（先创建，后面会用到）
+            const syncBtn = document.createElement('button');
+            syncBtn.id = 'btnSyncSettings';
+            syncBtn.className = 'icon-btn';
+            syncBtn.title = '同步设置';
+            syncBtn.innerHTML = SyncSettings.getStatusIndicatorHTML();
+            syncBtn.addEventListener('click', () => SyncSettings.openModal());
+            headerActions.insertBefore(syncBtn, headerActions.firstChild);
+
+            // 监听存储模式变化更新指示器
+            Storage.onModeChange((newMode) => {
+                syncBtn.innerHTML = SyncSettings.getStatusIndicatorHTML();
+            });
+
             // 监听认证状态变化
             Auth.subscribe((event, data) => {
                 if (event === 'login' || event === 'register') {
                     // 隐藏登录/注册按钮
                     loginBtn.style.display = 'none';
                     registerBtn.style.display = 'none';
+                    // 显示同步设置按钮
+                    syncBtn.style.display = '';
+                    
+                    // 登录成功后自动切换到云端模式并同步数据
+                    Storage.switchMode('api').then(result => {
+                        if (result.success) {
+                            Toast.show('已切换到云端同步模式', 'success');
+                            // 重新加载数据并渲染
+                            LinkManager.reload();
+                            App.renderLinks();
+                        } else {
+                            console.warn('[App] 切换云端模式失败:', result.message);
+                        }
+                    });
                 } else if (event === 'logout') {
                     // 显示登录/注册按钮
                     loginBtn.style.display = '';
                     registerBtn.style.display = '';
+                    // 隐藏同步设置按钮
+                    syncBtn.style.display = 'none';
+                    
+                    // 登出后切换回本地模式
+                    Storage.switchMode('local').then(() => {
+                        LinkManager.reload();
+                        App.renderLinks();
+                    });
                 }
             });
 
@@ -158,6 +200,17 @@
             if (Auth.isAuthenticated()) {
                 loginBtn.style.display = 'none';
                 registerBtn.style.display = 'none';
+                syncBtn.style.display = '';
+
+                // Storage.init() 已经自动处理 API 模式的初始化和同步
+                // 现在只需要重新加载并渲染数据
+                if (Storage.getMode() === 'api') {
+                    LinkManager.reload();
+                    App.renderLinks();
+                    console.log('[App] API 模式已初始化，数据已加载并渲染');
+                }
+            } else {
+                syncBtn.style.display = 'none';
             }
 
             // 添加链接按钮

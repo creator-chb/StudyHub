@@ -91,7 +91,23 @@ const Config = (function() {
             // 是否启用后端同步（Phase 1 实现时设为 true）
             backendSync: false,
             // 后端服务地址
-            backendUrl: 'http://localhost:3000'
+            backendUrl: 'http://localhost:3000',
+            // 自动同步间隔（毫秒），0 表示禁用
+            autoSyncInterval: 30000,
+            // 离线模式（网络不可用时自动切换）
+            offlineMode: false
+        },
+
+        // 同步设置
+        sync: {
+            // 同步状态
+            status: 'idle', // 'idle' | 'syncing' | 'error' | 'offline'
+            // 最后同步时间
+            lastSyncTime: null,
+            // 同步错误信息
+            lastError: null,
+            // 待同步操作数量
+            pendingCount: 0
         }
     };
 
