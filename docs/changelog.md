@@ -9,6 +9,45 @@
 ## [2.0.0-dev] - 2026-03-21
 
 ### 新增 ✨
+- 🔗 **链接管理后端化（Phase 2）**
+  - 分类表（categories）和链接表（links）数据库设计
+  - `GET /api/v1/categories` - 获取分类列表
+  - `POST /api/v1/categories` - 创建分类
+  - `PUT /api/v1/categories/:id` - 更新分类
+  - `DELETE /api/v1/categories/:id` - 删除分类
+  - `GET /api/v1/links` - 获取链接列表（支持筛选、分页）
+  - `GET /api/v1/links/pinned` - 获取置顶链接
+  - `GET /api/v1/links/:id` - 获取单个链接详情
+  - `POST /api/v1/links` - 创建链接
+  - `PUT /api/v1/links/:id` - 更新链接
+  - `DELETE /api/v1/links/:id` - 删除链接
+  - `PATCH /api/v1/links/:id/pin` - 切换置顶状态
+  - `POST /api/v1/links/batch-delete` - 批量删除链接
+  - 请求参数校验（Zod 验证）
+  - URL 格式验证和重复链接检测
+
+### 新增基础设施 🔧
+- 🗄️ **数据库扩展**
+  - 分类表（categories）设计：支持名称、颜色、图标、排序
+  - 链接表（links）设计：支持分类关联、置顶、点击统计
+  - 外键关联和索引优化
+  - 自动更新时间戳触发器
+
+- 🛡️ **数据验证层**
+  - Zod 验证库集成
+  - 分类和链接的创建/更新验证 Schema
+  - 统一的验证错误响应格式
+
+### 优化 ⚡
+- 📁 **模型层完善**
+  - Category 模型：CRUD 操作、名称唯一性检查
+  - Link 模型：CRUD 操作、URL 唯一性检查、批量删除、置顶切换
+
+---
+
+## [2.0.0-dev] - 2026-03-21
+
+### 新增 ✨
 - 📁 **HTML 文件结构规范化**
   - 创建 `legacy/` 目录归档历史版本
   - 移动 `studyhub.html` 到 `legacy/studyhub_v1_legacy.html`
@@ -319,4 +358,4 @@
 
 ---
 
-**最后更新**: 2026-03-21（Phase 1 用户认证完成）
+**最后更新**: 2026-03-21（Phase 2 链接管理后端化完成）

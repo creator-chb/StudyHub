@@ -174,24 +174,24 @@
 
 ---
 
-#### Phase 2: 链接管理后端化（第 3-4 周）
+#### Phase 2: 链接管理后端化（第 3-4 周）✅
 
 **目标**: 实现链接数据的云端存储和同步
 
 **后端开发任务**:
-- [ ] **数据库扩展**
+- [x] **数据库扩展**
   - 设计分类表（categories）
   - 设计链接表（links）
   - 外键关联和索引优化
   - 数据库迁移脚本
 
-- [ ] **分类管理 API**
+- [x] **分类管理 API**
   - `GET /api/v1/categories` - 获取分类列表
   - `POST /api/v1/categories` - 创建分类
   - `PUT /api/v1/categories/:id` - 更新分类
   - `DELETE /api/v1/categories/:id` - 删除分类
 
-- [ ] **链接管理 API**
+- [x] **链接管理 API**
   - `GET /api/v1/links` - 获取链接列表（支持筛选、分页）
   - `POST /api/v1/links` - 创建链接
   - `GET /api/v1/links/:id` - 获取单个链接
@@ -200,8 +200,8 @@
   - `PATCH /api/v1/links/:id/pin` - 切换置顶状态
   - `POST /api/v1/links/batch-delete` - 批量删除
 
-- [ ] **数据验证**
-  - 请求参数校验（Joi / Zod）
+- [x] **数据验证**
+  - 请求参数校验（Zod）
   - URL 格式验证
   - 重复链接检测
 
