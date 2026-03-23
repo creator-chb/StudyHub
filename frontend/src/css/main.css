@@ -1396,3 +1396,457 @@ input[type="file"].hidden {
 [data-theme="dark"] .result-errors {
     background: rgba(255, 92, 92, 0.15);
 }
+
+/* =========================
+   加载状态样式
+========================= */
+
+/* 全局加载指示器 */
+.global-loading {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: opacity 0.2s ease;
+}
+
+.global-loading.hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.global-loading-backdrop {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(2px);
+}
+
+.global-loading-content {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    padding: 32px 48px;
+    background: var(--bg-card);
+    border-radius: 16px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+}
+
+.global-loading .loading-text {
+    font-size: 14px;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+/* 加载动画 Spinner */
+.loading-spinner {
+    border-radius: 50%;
+    border-style: solid;
+    border-color: var(--border-color) transparent transparent transparent;
+    animation: spin 0.8s linear infinite;
+}
+
+.loading-spinner.small {
+    width: 14px;
+    height: 14px;
+    border-width: 2px;
+}
+
+.loading-spinner.medium,
+.loading-spinner:not(.small):not(.large) {
+    width: 24px;
+    height: 24px;
+    border-width: 3px;
+}
+
+.loading-spinner.large {
+    width: 40px;
+    height: 40px;
+    border-width: 4px;
+    border-top-color: var(--primary-color);
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* 按钮加载状态 */
+.btn-loading {
+    position: relative;
+    pointer-events: none;
+    cursor: wait;
+}
+
+.btn-loading-content {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btn-loading .loading-spinner.small {
+    border-top-color: currentColor;
+}
+
+/* 内联加载 */
+.loading-inline {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 40px 20px;
+    color: var(--text-muted);
+}
+
+.loading-inline .loading-text {
+    font-size: 14px;
+}
+
+/* 骨架屏加载 */
+.skeleton {
+    background: linear-gradient(
+        90deg,
+        var(--bg-primary) 25%,
+        var(--border-color) 50%,
+        var(--bg-primary) 75%
+    );
+    background-size: 200% 100%;
+    animation: skeleton-loading 1.5s ease-in-out infinite;
+    border-radius: 8px;
+}
+
+.skeleton-text {
+    height: 14px;
+    margin-bottom: 8px;
+}
+
+.skeleton-text.short {
+    width: 60%;
+}
+
+.skeleton-text.medium {
+    width: 80%;
+}
+
+.skeleton-card {
+    height: 80px;
+}
+
+@keyframes skeleton-loading {
+    0% {
+        background-position: 200% 0;
+    }
+    100% {
+        background-position: -200% 0;
+    }
+}
+
+/* 深色主题加载状态 */
+[data-theme="dark"] .global-loading-backdrop {
+    background: rgba(0, 0, 0, 0.5);
+}
+
+[data-theme="dark"] .loading-spinner {
+    border-color: var(--border-color) transparent transparent transparent;
+}
+
+[data-theme="dark"] .loading-spinner.large {
+    border-top-color: var(--primary-color);
+}
+
+[data-theme="dark"] .skeleton {
+    background: linear-gradient(
+        90deg,
+        var(--bg-secondary) 25%,
+        var(--border-color) 50%,
+        var(--bg-secondary) 75%
+    );
+    background-size: 200% 100%;
+}
+
+/* =========================
+   网络错误提示
+========================= */
+
+/* Toast 重试按钮 */
+.toast-retry-btn {
+    background: rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: #fff;
+    padding: 4px 12px;
+    border-radius: 4px;
+    font-size: 12px;
+    cursor: pointer;
+    margin-left: 12px;
+    transition: all 0.2s;
+}
+
+.toast-retry-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+/* 离线状态指示器 */
+.offline-indicator {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    padding: 8px 16px;
+    background: var(--warning-color);
+    color: #fff;
+    text-align: center;
+    font-size: 14px;
+    font-weight: 500;
+    z-index: 9998;
+    animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+    from {
+        transform: translateY(-100%);
+    }
+    to {
+        transform: translateY(0);
+    }
+}
+
+.offline-indicator.hidden {
+    display: none;
+}
+
+/* 网络错误重试面板 */
+.network-error-panel {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+    text-align: center;
+}
+
+.network-error-icon {
+    font-size: 48px;
+    margin-bottom: 16px;
+    opacity: 0.5;
+}
+
+.network-error-message {
+    font-size: 16px;
+    color: var(--text-secondary);
+    margin-bottom: 20px;
+}
+
+.network-error-retry-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* =========================
+   撤销提示
+========================= */
+
+/* 撤销 Toast */
+.toast.undo-toast {
+    min-width: 300px;
+}
+
+.toast-undo-btn {
+    background: rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: #fff;
+    padding: 4px 12px;
+    border-radius: 4px;
+    font-size: 12px;
+    cursor: pointer;
+    margin-left: 12px;
+    transition: all 0.2s;
+    font-weight: 500;
+}
+
+.toast-undo-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: scale(1.02);
+}
+
+.toast-undo-btn:active {
+    transform: scale(0.98);
+}
+
+/* =========================
+   懒加载样式
+========================= */
+
+/* 懒加载指示器 */
+.lazy-load-indicator {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 20px;
+    color: var(--text-muted);
+    font-size: 14px;
+}
+
+/* 懒加载旋转器 */
+.lazy-load-spinner {
+    width: 20px;
+    height: 20px;
+    border: 2px solid var(--border-color);
+    border-top-color: var(--primary-color);
+    border-radius: 50%;
+    animation: lazySpin 0.8s linear infinite;
+}
+
+@keyframes lazySpin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* 懒加载错误提示 */
+.lazy-load-error {
+    color: var(--danger-color);
+}
+
+/* 重试按钮 */
+.lazy-load-retry {
+    background: var(--primary-color);
+    color: #fff;
+    border: none;
+    padding: 6px 16px;
+    border-radius: 6px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.lazy-load-retry:hover {
+    background: var(--primary-hover);
+    transform: translateY(-1px);
+}
+
+/* 加载结束提示 */
+.lazy-load-end {
+    color: var(--text-muted);
+    font-size: 13px;
+    padding: 10px 0;
+}
+
+/* 图片懒加载状态 */
+img.lazy-loading {
+    opacity: 0.5;
+    filter: blur(5px);
+    transition: opacity 0.3s, filter 0.3s;
+}
+
+img.lazy-loaded {
+    opacity: 1;
+    filter: blur(0);
+}
+
+img.lazy-error {
+    opacity: 0.5;
+    background: var(--bg-primary);
+}
+
+/* 骨架屏加载效果 */
+.skeleton {
+    background: linear-gradient(90deg, var(--bg-primary) 25%, var(--bg-secondary) 50%, var(--bg-primary) 75%);
+    background-size: 200% 100%;
+    animation: skeletonShimmer 1.5s infinite;
+    border-radius: 8px;
+}
+
+@keyframes skeletonShimmer {
+    0% {
+        background-position: 200% 0;
+    }
+    100% {
+        background-position: -200% 0;
+    }
+}
+
+/* 链接卡片骨架屏 */
+.skeleton-link-card {
+    height: 56px;
+    margin-bottom: 10px;
+}
+
+/* 任务卡片骨架屏 */
+.skeleton-task-card {
+    height: 120px;
+    margin-bottom: 16px;
+}
+
+/* 分页加载按钮 */
+.load-more-btn {
+    display: block;
+    width: 100%;
+    padding: 12px;
+    margin-top: 16px;
+    background: var(--bg-card);
+    border: 1px dashed var(--border-color);
+    border-radius: 8px;
+    color: var(--text-secondary);
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.load-more-btn:hover {
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+    background: var(--chip-bg);
+}
+
+.load-more-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* 无限滚动容器 */
+.infinite-scroll-container {
+    min-height: 200px;
+    position: relative;
+}
+
+/* 滚动到底部提示 */
+.scroll-bottom-hint {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: var(--primary-color);
+    color: #fff;
+    padding: 10px 16px;
+    border-radius: 20px;
+    font-size: 13px;
+    box-shadow: 0 4px 12px rgba(79, 140, 255, 0.3);
+    cursor: pointer;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.3s, transform 0.3s;
+    z-index: 100;
+}
+
+.scroll-bottom-hint.visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.scroll-bottom-hint:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(79, 140, 255, 0.4);
+}

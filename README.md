@@ -3,7 +3,7 @@
 一个基于浏览器的轻量级学习任务管理工具，帮助你高效管理学习链接和任务计划。
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
-[![Version](https://img.shields.io/badge/version-1.4.0-blue.svg)](https://github.com/chb/StudyHub)
+[![Version](https://img.shields.io/badge/version-2.0.0-blue.svg)](https://github.com/chb/StudyHub)
 [![Status](https://img.shields.io/badge/status-active-green.svg)](https://github.com/chb/StudyHub)
 
 ## 📖 项目简介
@@ -297,29 +297,34 @@ MIT License - 详见 [LICENSE](LICENSE) 文件
 
 ## 📊 当前版本
 
-**最新版本：v1.4.0**（2026-03-20）
+**最新版本：v2.0.0**（2026-03-23）
 
 **核心功能：**
-- ✅ 完整的链接池管理系统（分类、置顶、搜索）
-- ✅ 任务创建、编辑、删除功能
-- ✅ 任务优先级设置（高/中/低）
-- ✅ 任务完成状态标记与分区显示
-- ✅ 智能时间排序与提醒
-- ✅ Toast 通知系统与确认对话框
-- ✅ 实时表单验证与错误提示
-- ✅ 本地数据持久化存储
-- ✅ 数据导入导出功能（JSON格式）
-- ✅ 深色模式支持（浅色/深色/跟随系统）
-- ✅ 键盘快捷键支持
-- ✅ 移动端触摸手势支持
-- ✅ 模块化架构设计
-- ✅ 响应式卡片式设计
+- 完整的链接池管理系统（分类、置顶、搜索）
+- 任务创建、编辑、删除功能
+- 任务优先级设置（高/中/低）
+- 任务完成状态标记与分区显示
+- 智能时间排序与提醒
+- Toast 通知系统与确认对话框
+- 实时表单验证与错误提示
+- 本地数据持久化存储
+- 数据导入导出功能（JSON格式）
+- 深色模式支持（浅色/深色/跟随系统）
+- 键盘快捷键支持
+- 移动端触摸手势支持
+- 模块化架构设计
+- 响应式卡片式设计
 
-**下一版本预告（v2.0.0）：**
-- 后端 API 集成
+**v2.0.0 新特性：**
+- 后端 API 集成（Express + TypeScript）
+- PostgreSQL 数据库存储
+- Redis 缓存与会话管理
+- 用户认证系统（JWT + Refresh Token）
 - 数据云同步
-- 用户账户系统
-- 插件生态系统
+- Docker 容器化部署
+- 安全防护（SQL注入/XSS/CSRF防护）
+- 加载状态与网络错误友好提示
+- 操作撤销功能
 
 更多规划详见 [开发路线图](docs/roadmap.md)
 

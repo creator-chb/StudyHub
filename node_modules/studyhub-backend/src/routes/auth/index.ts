@@ -14,6 +14,35 @@ import config from '../../config/index.js';
 const router = Router();
 
 /**
+ * 验证密码强度
+ * @param password - 密码
+ * @returns {Object} 验证结果
+ */
+function validatePasswordStrength(password: string): { valid: boolean; message: string } {
+    if (password.length < 8) {
+        return { valid: false, message: '密码长度至少为 8 个字符' };
+    }
+    if (password.length > 128) {
+        return { valid: false, message: '密码长度不能超过 128 个字符' };
+    }
+    if (!/[a-z]/.test(password)) {
+        return { valid: false, message: '密码必须包含至少一个小写字母' };
+    }
+    if (!/[A-Z]/.test(password)) {
+        return { valid: false, message: '密码必须包含至少一个大写字母' };
+    }
+    if (!/[0-9]/.test(password)) {
+        return { valid: false, message: '密码必须包含至少一个数字' };
+    }
+    // 检查常见弱密码
+    const commonPasswords = ['password', 'Password1', '12345678', 'qwerty', 'abc123'];
+    if (commonPasswords.some(common => password.toLowerCase().includes(common.toLowerCase()))) {
+        return { valid: false, message: '密码过于简单，请使用更复杂的密码' };
+    }
+    return { valid: true, message: '' };
+}
+
+/**
  * POST /api/v1/auth/register
  * 用户注册
  */
@@ -40,11 +69,21 @@ router.post('/register', async (req: Request, res: Response) => {
             return;
         }
 
-        // 验证密码长度
-        if (password.length < 6) {
+        // 验证用户名格式
+        if (username.length < 2 || username.length > 50) {
             res.status(400).json({
                 success: false,
-                message: '密码长度至少为 6 个字符',
+                message: '用户名长度应为 2-50 个字符',
+            });
+            return;
+        }
+
+        // 验证密码强度
+        const passwordValidation = validatePasswordStrength(password);
+        if (!passwordValidation.valid) {
+            res.status(400).json({
+                success: false,
+                message: passwordValidation.message,
             });
             return;
         }

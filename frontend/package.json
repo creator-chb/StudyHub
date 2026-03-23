@@ -1,0 +1,19 @@
+{
+  "name": "studyhub-frontend",
+  "version": "2.0.0",
+  "description": "StudyHub 前端 - 纯 JavaScript 单页应用",
+  "scripts": {
+    "build": "node build.js",
+    "build:watch": "node build.js --watch",
+    "serve": "npx http-server dist -p 8080 -c-1",
+    "lint": "echo 'No linter configured for vanilla JS'",
+    "clean": "rm -rf dist"
+  },
+  "devDependencies": {
+    "esbuild": "^0.19.0",
+    "http-server": "^14.1.1"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

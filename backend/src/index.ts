@@ -1,10 +1,11 @@
 /**
  * StudyHub 后端服务入口
- * Phase 3: 任务管理后端化
+ * Phase 6: 优化与发布
  */
 
 import express, { Express } from 'express';
 import cors from 'cors';
+import compression from 'compression';
 import config from './config/index.js';
 import healthRouter from './routes/health.js';
 import authRouter from './routes/auth/index.js';
@@ -17,6 +18,9 @@ import { requestLogger } from './middleware/logger.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 import { authRateLimiter, apiRateLimiter } from './middleware/rateLimiter.js';
 import { linksCache, categoriesCache, tasksCache } from './middleware/cache.js';
+import { sanitizeAll } from './middleware/sanitizer.js';
+import { securityHeaders, detectSuspiciousRequest } from './middleware/security.js';
+import { getCsrfToken, csrfProtection } from './middleware/csrf.js';
 
 const app: Express = express();
 
@@ -24,15 +28,39 @@ const app: Express = express();
 // 中间件
 // =============================================
 
+// 安全响应头（Phase 6 安全加固）
+app.use(securityHeaders);
+
 // CORS
 app.use(cors({
     origin: config.frontendUrl,
     credentials: true,
 }));
 
+// 响应压缩（Phase 6 性能优化）
+app.use(compression({
+    filter: (req: express.Request, res: express.Response) => {
+        if (req.headers['x-no-compression']) {
+            return false;
+        }
+        return compression.filter(req, res);
+    },
+    threshold: 1024, // 大于 1KB 才压缩
+    level: 6, // 压缩级别 1-9
+}));
+
+// ETag 支持（Phase 6 性能优化）
+app.set('etag', 'strong');
+
 // 请求体解析
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// 输入清理（Phase 6 安全加固）
+app.use(sanitizeAll);
+
+// 可疑请求检测（Phase 6 安全加固）
+app.use(detectSuspiciousRequest);
 
 // 请求日志
 app.use(requestLogger);
@@ -42,6 +70,10 @@ app.use(requestLogger);
 // =============================================
 
 app.use('/api', healthRouter);
+
+// CSRF Token 获取端点
+app.get('/api/v1/csrf-token', getCsrfToken);
+
 app.use('/api/v1/auth', authRateLimiter, authRouter);
 app.use('/api/v1/categories', apiRateLimiter, categoriesCache, categoriesRouter);
 app.use('/api/v1/links', apiRateLimiter, linksCache, linksRouter);
@@ -66,7 +98,7 @@ app.use(errorHandler);
 app.listen(config.port, () => {
     console.log(`StudyHub 后端服务运行在 http://localhost:${config.port}`);
     console.log(`允许跨域来源：${config.frontendUrl}`);
-    console.log(`当前阶段：Phase 5 - 部署与运维`);
+    console.log(`当前阶段：Phase 6 - 优化与发布`);
     console.log(`环境：${config.nodeEnv}`);
 });
 

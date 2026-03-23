@@ -16,7 +16,10 @@ const Utils = (function() {
         '<': '&lt;',
         '>': '&gt;',
         '"': '&quot;',
-        "'": '&#39;'
+        "'": '&#39;',
+        '/': '&#x2F;',
+        '`': '&#x60;',
+        '=': '&#x3D;'
     };
 
     /**
@@ -26,11 +29,89 @@ const Utils = (function() {
         /**
          * 转义 HTML 特殊字符，防止 XSS 攻击
          * @param {string} str - 要转义的字符串
+         * @param {Object} options - 选项
          * @returns {string} 转义后的字符串
          */
-        escapeHtml(str) {
+        escapeHtml(str, options = {}) {
             if (str == null) return '';
-            return String(str).replace(/[&<>"']/g, char => htmlEscapes[char]);
+            
+            let result = String(str);
+            
+            // 基本转义
+            result = result.replace(/[&<>"'`=/]/g, char => htmlEscapes[char]);
+            
+            // 额外的安全清理
+            if (options.strict) {
+                // 移除所有脚本相关内容
+                result = result
+                    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+                    .replace(/javascript:/gi, '')
+                    .replace(/on\w+\s*=/gi, '')
+                    .replace(/data:/gi, '');
+            }
+            
+            return result;
+        },
+
+        /**
+         * 转义 HTML 属性值
+         * @param {string} str - 要转义的字符串
+         * @returns {string} 转义后的字符串
+         */
+        escapeAttribute(str) {
+            if (str == null) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;');
+        },
+
+        /**
+         * 清理 URL，移除危险协议
+         * @param {string} url - URL 字符串
+         * @returns {string} 清理后的 URL
+         */
+        sanitizeUrl(url) {
+            if (!url) return '';
+            
+            const dangerousProtocols = ['javascript:', 'vbscript:', 'data:', 'file:'];
+            const lowerUrl = url.toLowerCase().trim();
+            
+            // 检查危险协议
+            for (const protocol of dangerousProtocols) {
+                if (lowerUrl.startsWith(protocol)) {
+                    return '#'; // 返回安全的占位符
+                }
+            }
+            
+            return url.trim();
+        },
+
+        /**
+         * 清理 HTML 内容（移除潜在危险的标签和属性）
+         * @param {string} html - HTML 字符串
+         * @returns {string} 清理后的 HTML
+         */
+        sanitizeHtml(html) {
+            if (!html) return '';
+            
+            return String(html)
+                // 移除 script 标签
+                .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+                // 移除 style 标签
+                .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '')
+                // 移除事件处理器
+                .replace(/on\w+\s*=\s*["'][^"']*["']/gi, '')
+                // 移除 javascript: 协议
+                .replace(/javascript:/gi, '')
+                // 移除 data: 协议
+                .replace(/data:/gi, '')
+                // 移除 iframe 标签
+                .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, '')
+                // 移除 object 和 embed 标签
+                .replace(/<(object|embed)\b[^<]*(?:(?!<\/\1>)<[^<]*)*<\/\1>/gi, '');
         },
 
         /**
