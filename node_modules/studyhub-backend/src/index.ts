@@ -12,6 +12,7 @@ import categoriesRouter from './routes/categories.js';
 import linksRouter from './routes/links.js';
 import tasksRouter from './routes/tasks.js';
 import dataRouter from './routes/data.js';
+import swaggerRouter from './routes/swagger.js';
 import { requestLogger } from './middleware/logger.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 import { authRateLimiter, apiRateLimiter } from './middleware/rateLimiter.js';
@@ -47,6 +48,11 @@ app.use('/api/v1/links', apiRateLimiter, linksCache, linksRouter);
 app.use('/api/v1/tasks', apiRateLimiter, tasksCache, tasksRouter);
 app.use('/api/v1/data', apiRateLimiter, dataRouter);
 
+// API 文档（开发环境）
+if (config.nodeEnv === 'development') {
+    app.use('/api/docs', swaggerRouter);
+}
+
 // 404 处理
 app.use(notFoundHandler);
 
@@ -60,7 +66,7 @@ app.use(errorHandler);
 app.listen(config.port, () => {
     console.log(`StudyHub 后端服务运行在 http://localhost:${config.port}`);
     console.log(`允许跨域来源：${config.frontendUrl}`);
-    console.log(`当前阶段：Phase 4 - 数据迁移与导入导出`);
+    console.log(`当前阶段：Phase 5 - 部署与运维`);
     console.log(`环境：${config.nodeEnv}`);
 });
 

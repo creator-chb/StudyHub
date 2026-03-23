@@ -6,9 +6,21 @@
 
 ---
 
-## [2.0.0-dev] - 2026-03-22
+## [2.0.0-dev] - 2026-03-23
 
 ### 新增 ✨
+- 🐳 **部署与运维（Phase 5）**
+  - Docker 容器化：前端/后端 Dockerfile 多阶段构建
+  - Docker Compose 编排：开发/生产环境配置分离
+  - Nginx 反向代理：SSL/TLS、Gzip、限流、安全响应头
+  - Let's Encrypt SSL 证书自动获取和续期
+  - 自动化部署脚本：deploy.sh、migrate.sh、backup.sh
+  - CI/CD 流水线：GitHub Actions 自动构建和部署
+  - 日志收集：Loki + Grafana 日志聚合
+  - 监控告警：Prometheus + Grafana 指标监控
+  - 数据备份：PostgreSQL + Redis 自动备份脚本
+  - 完整部署文档：环境要求、配置说明、故障排查
+
 - 🔄 **数据迁移与导入导出（Phase 4）**
   - `GET /api/v1/data/export` - 导出用户数据（支持 JSON 格式）
   - `POST /api/v1/data/import` - 导入用户数据（支持合并/覆盖策略）
