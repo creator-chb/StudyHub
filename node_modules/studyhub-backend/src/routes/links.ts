@@ -13,6 +13,7 @@ import {
     batchDeleteSchema,
 } from '../utils/validation.js';
 import { ZodError } from 'zod';
+import { clearResponseCache } from '../middleware/cache.js';
 
 const router = Router();
 
@@ -165,6 +166,8 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
             message: '链接创建成功',
             data: { link },
         });
+        // 清除该用户的缓存
+        clearResponseCache(userId).catch(err => console.error('[Links] 清除缓存失败:', err));
     } catch (error) {
         if (error instanceof ZodError) {
             res.status(400).json({
@@ -227,6 +230,8 @@ router.put('/:id', authenticate, async (req: AuthRequest, res: Response) => {
             message: '链接更新成功',
             data: { link },
         });
+        // 清除该用户的缓存
+        clearResponseCache(userId).catch(err => console.error('[Links] 清除缓存失败:', err));
     } catch (error) {
         if (error instanceof ZodError) {
             res.status(400).json({
@@ -275,6 +280,8 @@ router.delete('/:id', authenticate, async (req: AuthRequest, res: Response) => {
                 success: true,
                 message: '链接删除成功',
             });
+            // 清除该用户的缓存
+            clearResponseCache(userId).catch(err => console.error('[Links] 清除缓存失败:', err));
         } else {
             res.status(500).json({
                 success: false,
@@ -317,6 +324,8 @@ router.patch('/:id/pin', authenticate, async (req: AuthRequest, res: Response) =
             message: link?.is_pinned ? '链接已置顶' : '链接已取消置顶',
             data: { link },
         });
+        // 清除该用户的缓存
+        clearResponseCache(userId).catch(err => console.error('[Links] 清除缓存失败:', err));
     } catch (error) {
         console.error('[Links] 切换置顶错误:', error);
         res.status(500).json({
@@ -345,6 +354,8 @@ router.post('/batch-delete', authenticate, async (req: AuthRequest, res: Respons
             message: `成功删除 ${deletedCount} 个链接`,
             data: { deletedCount },
         });
+        // 清除该用户的缓存
+        clearResponseCache(userId).catch(err => console.error('[Links] 清除缓存失败:', err));
     } catch (error) {
         if (error instanceof ZodError) {
             res.status(400).json({

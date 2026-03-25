@@ -89,12 +89,14 @@ const LinkManager = (function() {
             errors.push(urlValidation.error);
         }
 
-        // 检查重复 URL
-        const existingLink = links.find(l => 
-            l.url === link.url && l.id !== link.id
-        );
-        if (existingLink) {
-            errors.push('该链接已存在');
+        // 检查重复 URL（API 模式下由服务器校验，跳过本地校验避免脏缓存误判）
+        if (!Storage.isApiMode()) {
+            const existingLink = links.find(l => 
+                l.url === link.url && l.id !== link.id
+            );
+            if (existingLink) {
+                errors.push('该链接已存在');
+            }
         }
 
         return { valid: errors.length === 0, errors };

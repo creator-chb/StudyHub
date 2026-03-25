@@ -643,11 +643,31 @@ const ApiStorageAdapter = (function() {
         console.log('[ApiStorage] 开始同步数据...');
 
         try {
-            const [links, categories, tasks] = await Promise.all([
+            const [linksResult, categoriesResult, tasksResult] = await Promise.allSettled([
                 fetchLinks(),
                 fetchCategories(),
                 fetchTasks()
             ]);
+
+            // 各接口独立处理，部分失败不影响其他数据
+            const links = linksResult.status === 'fulfilled' ? linksResult.value : [];
+            const categories = categoriesResult.status === 'fulfilled' ? categoriesResult.value : [];
+            const tasks = tasksResult.status === 'fulfilled' ? tasksResult.value : [];
+
+            if (linksResult.status === 'rejected') {
+                console.warn('[ApiStorage] 链接同步失败:', linksResult.reason);
+            }
+            if (categoriesResult.status === 'rejected') {
+                console.warn('[ApiStorage] 分类同步失败:', categoriesResult.reason);
+            }
+            if (tasksResult.status === 'rejected') {
+                console.warn('[ApiStorage] 任务同步失败:', tasksResult.reason);
+            }
+
+            // 只要 links 同步成功就算成功（核心数据）
+            if (linksResult.status === 'rejected') {
+                throw linksResult.reason;
+            }
 
             cache.links = links;
             cache.categories = categories;

@@ -8,6 +8,7 @@ import { authenticate, AuthRequest } from '../middleware/auth.js';
 import * as CategoryModel from '../models/Category.js';
 import { createCategorySchema, updateCategorySchema } from '../utils/validation.js';
 import { ZodError } from 'zod';
+import { clearResponseCache } from '../middleware/cache.js';
 
 const router = Router();
 
@@ -67,6 +68,7 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
             message: '分类创建成功',
             data: { category },
         });
+        clearResponseCache(userId).catch(err => console.error('[Categories] 清除缓存失败:', err));
     } catch (error) {
         if (error instanceof ZodError) {
             res.status(400).json({
@@ -129,6 +131,7 @@ router.put('/:id', authenticate, async (req: AuthRequest, res: Response) => {
             message: '分类更新成功',
             data: { category },
         });
+        clearResponseCache(userId).catch(err => console.error('[Categories] 清除缓存失败:', err));
     } catch (error) {
         if (error instanceof ZodError) {
             res.status(400).json({
@@ -177,6 +180,7 @@ router.delete('/:id', authenticate, async (req: AuthRequest, res: Response) => {
                 success: true,
                 message: '分类删除成功',
             });
+            clearResponseCache(userId).catch(err => console.error('[Categories] 清除缓存失败:', err));
         } else {
             res.status(500).json({
                 success: false,

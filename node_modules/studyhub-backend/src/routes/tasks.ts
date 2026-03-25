@@ -14,6 +14,7 @@ import {
     batchCompleteTasksSchema,
 } from '../utils/validation.js';
 import { ZodError } from 'zod';
+import { clearResponseCache } from '../middleware/cache.js';
 
 const router = Router();
 
@@ -156,6 +157,7 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
             message: '任务创建成功',
             data: { task },
         });
+        clearResponseCache(userId).catch(err => console.error('[Tasks] 清除缓存失败:', err));
     } catch (error) {
         if (error instanceof ZodError) {
             res.status(400).json({
@@ -207,6 +209,7 @@ router.put('/:id', authenticate, async (req: AuthRequest, res: Response) => {
             message: '任务更新成功',
             data: { task },
         });
+        clearResponseCache(userId).catch(err => console.error('[Tasks] 清除缓存失败:', err));
     } catch (error) {
         if (error instanceof ZodError) {
             res.status(400).json({
@@ -255,6 +258,7 @@ router.delete('/:id', authenticate, async (req: AuthRequest, res: Response) => {
                 success: true,
                 message: '任务删除成功',
             });
+            clearResponseCache(userId).catch(err => console.error('[Tasks] 清除缓存失败:', err));
         } else {
             res.status(500).json({
                 success: false,
@@ -297,6 +301,7 @@ router.patch('/:id/complete', authenticate, async (req: AuthRequest, res: Respon
             message: task?.is_completed ? '任务已完成' : '任务已标记为未完成',
             data: { task },
         });
+        clearResponseCache(userId).catch(err => console.error('[Tasks] 清除缓存失败:', err));
     } catch (error) {
         console.error('[Tasks] 切换完成状态错误:', error);
         res.status(500).json({
@@ -325,6 +330,7 @@ router.post('/batch-delete', authenticate, async (req: AuthRequest, res: Respons
             message: `成功删除 ${deletedCount} 个任务`,
             data: { deletedCount },
         });
+        clearResponseCache(userId).catch(err => console.error('[Tasks] 清除缓存失败:', err));
     } catch (error) {
         if (error instanceof ZodError) {
             res.status(400).json({
@@ -365,6 +371,7 @@ router.post('/batch-complete', authenticate, async (req: AuthRequest, res: Respo
             message: `成功完成 ${updatedCount} 个任务`,
             data: { updatedCount },
         });
+        clearResponseCache(userId).catch(err => console.error('[Tasks] 清除缓存失败:', err));
     } catch (error) {
         if (error instanceof ZodError) {
             res.status(400).json({
