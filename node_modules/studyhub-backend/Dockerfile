@@ -22,7 +22,7 @@ COPY package*.json ./
 COPY tsconfig.json ./
 
 # 安装所有依赖（包括开发依赖）
-RUN npm ci
+RUN npm install
 
 # 复制源代码
 COPY src ./src

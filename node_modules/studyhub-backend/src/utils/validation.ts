@@ -27,7 +27,7 @@ export const updateCategorySchema = z.object({
 // 链接验证
 // ============================================
 
-const urlRegex = /^(https?:\/\/)?([\da-z.-]+)\.([a-z.]{2,6})([/\w .-]*)*\/?$/;
+const urlRegex = /^https?:\/\/[^\s]+$/;
 
 export const createLinkSchema = z.object({
     title: z.string().min(1, '标题不能为空').max(255, '标题最多 255 个字符'),
