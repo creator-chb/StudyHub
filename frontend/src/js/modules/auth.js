@@ -180,6 +180,19 @@ const Auth = (function() {
                     try {
                         const result = await Storage.switchMode('api');
                         console.log('[Auth] 切换到 API 模式:', result);
+                        
+                        // 重新加载数据以显示同步的内容
+                        if (result.success) {
+                            if (typeof TaskManager !== 'undefined' && TaskManager.reload) {
+                                TaskManager.reload();
+                            }
+                            if (typeof LinkManager !== 'undefined' && LinkManager.reload) {
+                                LinkManager.reload();
+                            }
+                            if (typeof CategoryManager !== 'undefined' && CategoryManager.reload) {
+                                CategoryManager.reload();
+                            }
+                        }
                     } catch (e) {
                         console.error('[Auth] 切换存储模式失败:', e);
                     }
