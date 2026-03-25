@@ -18,6 +18,7 @@ import { requestLogger } from './middleware/logger.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 import { authRateLimiter, apiRateLimiter } from './middleware/rateLimiter.js';
 import { linksCache, categoriesCache, tasksCache } from './middleware/cache.js';
+import { authenticate } from './middleware/auth.js';
 import { sanitizeAll } from './middleware/sanitizer.js';
 import { securityHeaders, detectSuspiciousRequest } from './middleware/security.js';
 import { getCsrfToken, csrfProtection } from './middleware/csrf.js';
@@ -75,9 +76,9 @@ app.use('/api', healthRouter);
 app.get('/api/v1/csrf-token', getCsrfToken);
 
 app.use('/api/v1/auth', authRateLimiter, authRouter);
-app.use('/api/v1/categories', apiRateLimiter, categoriesCache, categoriesRouter);
-app.use('/api/v1/links', apiRateLimiter, linksCache, linksRouter);
-app.use('/api/v1/tasks', apiRateLimiter, tasksCache, tasksRouter);
+app.use('/api/v1/categories', apiRateLimiter, authenticate, categoriesCache, categoriesRouter);
+app.use('/api/v1/links', apiRateLimiter, authenticate, linksCache, linksRouter);
+app.use('/api/v1/tasks', apiRateLimiter, authenticate, tasksCache, tasksRouter);
 app.use('/api/v1/data', apiRateLimiter, dataRouter);
 
 // API 文档（开发环境）
