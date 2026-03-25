@@ -80,6 +80,10 @@ const ApiStorageAdapter = (function() {
             const data = await response.json();
 
             if (!response.ok) {
+                // 打印后端返回的详细字段错误，便于诊断
+                if (data.errors && data.errors.length > 0) {
+                    console.error('[ApiStorage] 校验错误详情:', JSON.stringify(data.errors));
+                }
                 const error = new Error(data.message || '请求失败');
                 error.status = response.status;
                 error.data = data;
@@ -375,6 +379,8 @@ const ApiStorageAdapter = (function() {
         if (updates.time !== undefined) body.deadline = updates.time;
         if (updates.priority !== undefined) body.priority = updates.priority;
         if (updates.links !== undefined) body.links = updates.links;
+
+        console.log('[Debug] updateTask 发送体:', JSON.stringify(body));
 
         const response = await apiRequest(`/tasks/${id}`, {
             method: 'PUT',
