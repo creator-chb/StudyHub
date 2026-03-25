@@ -61,7 +61,7 @@ services:
     environment:
       NODE_ENV: ${NODE_ENV:-development}
       PORT: 3000
-      FRONTEND_URL: http://localhost:8080
+      FRONTEND_URL: http://121.199.45.201:8080
       DB_HOST: postgres
       DB_PORT: 5432
       DB_USER: ${DB_USER:-postgres}
