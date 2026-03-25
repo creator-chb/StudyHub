@@ -6,18 +6,14 @@
 import { Router } from 'express';
 import swaggerUi from 'swagger-ui-express';
 import { readFileSync } from 'fs';
-import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+import { join } from 'path';
 
 const router = Router();
 
 // 加载 OpenAPI 规范
 let swaggerDocument: object;
 try {
-    const openApiPath = join(__dirname, 'openapi.json');
+    const openApiPath = join(process.cwd(), 'src', 'routes', 'openapi.json');
     const openApiContent = readFileSync(openApiPath, 'utf-8');
     swaggerDocument = JSON.parse(openApiContent);
 } catch (error) {

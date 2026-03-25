@@ -88,10 +88,10 @@ const Config = (function() {
 
         // 功能开关（Phase 0 新增）
         features: {
-            // 是否启用后端同步（Phase 1 实现时设为 true）
-            backendSync: false,
+            // 是否启用后端同步（Phase 1 已实现，设为 true）
+            backendSync: true,
             // 后端服务地址
-            backendUrl: 'http://localhost:3000',
+            backendUrl: 'http://121.199.45.201:3000',
             // 自动同步间隔（毫秒），0 表示禁用
             autoSyncInterval: 30000,
             // 离线模式（网络不可用时自动切换）

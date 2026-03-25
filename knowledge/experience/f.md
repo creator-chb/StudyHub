@@ -993,3 +993,575 @@ const api = {
 ---
 
 *最后更新：2026-03-22（完整重构版）*
+
+---
+
+# 附录 B：StudyHub 阿里云服务器部署技术问题汇总
+
+> 本文档记录了 StudyHub v1.4.0 部署到阿里云 ECS 服务器（Alibaba Cloud Linux 3, 4核8G, 公网IP 121.199.45.201）过程中遇到的所有技术问题及解决方案。
+
+---
+
+## 目录
+
+1. [环境配置问题](#b1-环境配置问题)
+2. [Docker 构建错误](#b2-docker-构建错误)
+3. [数据库连接故障](#b3-数据库连接故障)
+4. [CORS 跨域配置](#b4-cors-跨域配置)
+5. [Redis 密码配置](#b5-redis-密码配置)
+6. [前端后端通信问题](#b6-前端后端通信问题)
+7. [部署配置问题](#b7-部署配置问题)
+8. [经验总结与最佳实践](#b8-经验总结与最佳实践)
+
+---
+
+## B.1 环境配置问题
+
+### B.1.1 Docker Compose 命令不存在
+
+**问题现象**
+```bash
+$ docker-compose up -d
+-bash: docker-compose: command not found
+```
+
+**根本原因**
+- 新版 Docker 已将 Compose 功能集成到 Docker CLI 中
+- 旧版 `docker-compose` 命令不再作为独立工具提供
+
+**解决步骤**
+```bash
+# 使用新版 Docker 内置命令（空格而非横杠）
+docker compose up -d
+
+# 查看版本
+docker compose version
+```
+
+**最终效果**
+- Docker Compose 命令正常执行
+- 服务成功启动
+
+---
+
+### B.1.2 Docker 镜像拉取超时
+
+**问题现象**
+```
+Error response from daemon: Get "https://registry-1.docker.io/v2/": 
+net/http: request canceled while waiting for connection
+```
+
+**根本原因**
+- 国内网络访问 Docker Hub 官方仓库超时
+- 默认镜像源在国外，连接不稳定
+
+**解决步骤**
+```bash
+# 1. 创建 Docker 配置文件
+sudo mkdir -p /etc/docker
+
+# 2. 配置国内镜像源
+sudo tee /etc/docker/daemon.json << 'EOF'
+{
+  "registry-mirrors": [
+    "https://docker.mirrors.ustc.edu.cn",
+    "https://hub-mirror.c.163.com",
+    "https://mirror.baidubce.com"
+  ]
+}
+EOF
+
+# 3. 重启 Docker 服务
+sudo systemctl daemon-reload
+sudo systemctl restart docker
+```
+
+**最终效果**
+- 镜像拉取速度显著提升
+- PostgreSQL、Redis、Node.js 等镜像成功下载
+
+---
+
+### B.1.3 Alpine Linux 软件源极慢
+
+**问题现象**
+```
+ => [backend 2/6] RUN apk add --no-cache python3 make g++
+ => => # fetch https://dl-cdn.alpinelinux.org/alpine/v3.19/main/x86_64/APKINDEX.tar.gz
+ # 耗时 48 分钟仍未完成
+```
+
+**根本原因**
+- Alpine Linux 默认使用国外软件源 `dl-cdn.alpinelinux.org`
+- 国内访问速度慢，导致构建时间极长
+
+**解决步骤**
+```dockerfile
+# 在 backend/Dockerfile 中添加
+FROM node:18-alpine
+
+# 更换 Alpine 软件源为国内镜像
+RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories
+
+# 然后再安装依赖
+RUN apk add --no-cache python3 make g++
+```
+
+**最终效果**
+- 软件包安装时间从 48 分钟缩短到 30 秒
+- Docker 镜像构建速度显著提升
+
+---
+
+## B.2 Docker 构建错误
+
+### B.2.1 npm ci 需要 package-lock.json
+
+**问题现象**
+```
+ => [backend 4/6] RUN npm ci --only=production
+ => => # npm ERR! The `npm ci` command can only install with an existing package-lock.json
+ => => # npm ERR! If you need a new lock file, use npm install instead
+```
+
+**根本原因**
+- `npm ci` 命令需要 `package-lock.json` 文件来精确安装依赖版本
+- 项目代码中未提交该文件
+
+**解决步骤**
+```dockerfile
+# 修改 backend/Dockerfile
+# 原代码：
+# RUN npm ci --only=production
+
+# 改为使用 npm install
+RUN npm install --omit=dev && \
+    npm cache clean --force
+```
+
+**最终效果**
+- Docker 镜像构建成功
+- 生产依赖正确安装
+
+---
+
+### B.2.2 TypeScript 编译错误 - import.meta 不支持
+
+**问题现象**
+```
+src/routes/swagger.ts:10:25 - error TS1470: 
+The 'import.meta' meta-property is not allowed in files 
+which will build into CommonJS output.
+
+10 const __dirname = dirname(fileURLToPath(import.meta.url));
+```
+
+**根本原因**
+- TypeScript 配置输出 CommonJS 格式
+- `import.meta` 是 ES Module 特性，在 CommonJS 中不支持
+- `__dirname` 在 ES Module 中不可用
+
+**解决步骤**
+```typescript
+// 修改 backend/src/routes/swagger.ts
+// 移除 ES Module 特有的 import.meta
+
+// 原代码：
+// import { fileURLToPath } from 'url';
+// const __dirname = dirname(fileURLToPath(import.meta.url));
+// const openApiPath = join(__dirname, 'openapi.json');
+
+// 改为使用 process.cwd()
+import { join } from 'path';
+const openApiPath = join(process.cwd(), 'src', 'routes', 'openapi.json');
+```
+
+**最终效果**
+- TypeScript 编译成功
+- Swagger 文档正常加载
+
+---
+
+### B.2.3 前端 Dockerfile 路径错误
+
+**问题现象**
+```
+ => [frontend 3/4] COPY nginx.conf /etc/nginx/conf.d/default.conf
+ => => # COPY failed: file not found: /nginx.conf
+```
+
+**根本原因**
+- Docker 构建上下文是项目根目录
+- COPY 指令中的路径缺少 `frontend/` 前缀
+
+**解决步骤**
+```dockerfile
+# 修改 frontend/Dockerfile
+# 原代码：
+# COPY nginx.conf /etc/nginx/conf.d/default.conf
+# COPY index.html /usr/share/nginx/html/
+# COPY src /usr/share/nginx/html/src/
+
+# 改为：
+COPY frontend/nginx.conf /etc/nginx/conf.d/default.conf
+COPY frontend/index.html /usr/share/nginx/html/
+COPY frontend/src /usr/share/nginx/html/src/
+```
+
+**最终效果**
+- 前端 Docker 镜像构建成功
+- Nginx 配置和静态资源正确复制
+
+---
+
+## B.3 数据库连接故障
+
+### B.3.1 数据库迁移工具未安装
+
+**问题现象**
+```bash
+$ docker-compose exec backend npm run migrate
+> node-pg-migrate up
+sh: node-pg-migrate: not found
+```
+
+**根本原因**
+- `node-pg-migrate` 是开发依赖，生产环境未安装
+- 容器内没有可用的数据库迁移工具
+
+**解决步骤**
+```bash
+# 方案 1：在宿主机安装 Node.js 执行迁移
+# 1. 安装 Node.js 18
+sudo yum install -y nodejs npm
+
+# 2. 安装迁移工具
+npm install -g node-pg-migrate pg
+
+# 3. 执行迁移
+DATABASE_URL=postgresql://studyhub:密码@localhost:5432/studyhub \
+  node-pg-migrate up
+
+# 方案 2：直接执行 SQL 初始化脚本
+# 使用 psql 连接数据库并执行建表语句
+```
+
+**最终效果**
+- 数据库表结构成功创建
+- 迁移完成，应用可以正常访问数据库
+
+---
+
+## B.4 CORS 跨域配置
+
+### B.4.1 后端 CORS 白名单配置错误
+
+**问题现象**
+```
+Access to fetch at 'http://121.199.45.201:3000/api/v1/auth/login' 
+from origin 'http://121.199.45.201:8080' has been blocked by CORS policy: 
+Response to preflight request doesn't pass access control check: 
+The 'Access-Control-Allow-Origin' header has a value 'http://localhost:8080' 
+that is not equal to the supplied origin.
+```
+
+**根本原因**
+- `docker-compose.yml` 中硬编码了 `FRONTEND_URL: http://localhost:8080`
+- 该配置覆盖了 `.env.docker` 中的环境变量
+- 后端返回的 CORS 头与前端实际来源不匹配
+
+**解决步骤**
+```yaml
+# 修改 docker-compose.yml
+services:
+  backend:
+    environment:
+      # 原配置：
+      # FRONTEND_URL: http://localhost:8080
+      
+      # 改为使用环境变量或正确的公网 IP
+      FRONTEND_URL: http://121.199.45.201:8080
+```
+
+**验证方法**
+```bash
+# 检查后端容器环境变量
+docker exec studyhub-backend env | grep FRONTEND
+# 应输出：FRONTEND_URL=http://121.199.45.201:8080
+
+# 检查响应头
+curl -I http://121.199.45.201:3000/api/health
+# 应包含：Access-Control-Allow-Origin: http://121.199.45.201:8080
+```
+
+**最终效果**
+- CORS 跨域问题完全解决
+- 前端可以正常调用后端 API
+
+---
+
+### B.4.2 前端 API 地址硬编码为 localhost
+
+**问题现象**
+```
+GET http://localhost:3000/api/v1/auth/login net::ERR_CONNECTION_REFUSED
+```
+
+**根本原因**
+- 前端代码中 API 基础地址硬编码为 `http://localhost:3000`
+- 浏览器中 `localhost` 指向用户本地电脑，不是服务器
+
+**解决步骤**
+```bash
+# 在服务器上修改前端文件
+ssh root@121.199.45.201
+cd /opt/StudyHub/frontend/src/js/modules
+
+# 批量替换 localhost 为服务器 IP
+sed -i 's/localhost:3000/121.199.45.201:3000/g' \
+  api.js storage/ApiStorageAdapter.js migration.js config.js
+```
+
+**修改的文件清单**
+| 文件 | 修改内容 |
+|------|----------|
+| `api.js` | `API_BASE_URL`, `AUTH_BASE_URL` |
+| `storage/ApiStorageAdapter.js` | `API_BASE_URL` |
+| `migration.js` | `API_BASE_URL` |
+| `config.js` | `backendUrl` |
+
+**最终效果**
+- 前端正确指向服务器后端 API
+- 请求成功发送到 `121.199.45.201:3000`
+
+---
+
+## B.5 Redis 密码配置
+
+### B.5.1 Redis requirepass 特殊字符解析失败
+
+**问题现象**
+```
+# Redis 日志
+1:M 25 Mar 2026 05:30:12.123 # Fatal error, can't open config file 
+1:M 25 Mar 2026 05:30:12.124 # Wrong number of arguments for 'requirepass' command
+```
+
+**根本原因**
+- Redis 密码包含特殊字符 `/` 和 `+`
+- 这些字符在 Redis 配置文件中被错误解析
+- 密码格式：`abc/def+123` 导致配置解析失败
+
+**解决步骤**
+```bash
+# 方案 1：修改密码，移除特殊字符
+# 在 .env.docker 中设置简单密码
+REDIS_PASSWORD=yourpassword123
+
+# 方案 2：使用无密码模式（内网环境推荐）
+# 修改 docker-compose.yml，移除 requirepass 配置
+redis:
+  command: redis-server --appendonly yes
+  # 移除：--requirepass ${REDIS_PASSWORD}
+```
+
+**最终效果**
+- Redis 服务正常启动
+- 后端可以正常连接 Redis
+
+---
+
+## B.6 前端后端通信问题
+
+### B.6.1 前端资源 502 Bad Gateway
+
+**问题现象**
+```
+GET http://121.199.45.201:8080/src/js/modules/errorHandler.js 
+net::ERR_ABORTED 502 (Bad Gateway)
+```
+
+**根本原因**
+- 浏览器缓存了旧的错误页面
+- 前端容器健康检查失败但实际运行正常
+
+**解决步骤**
+```bash
+# 1. 强制刷新浏览器（Ctrl + F5）
+# 2. 或使用无痕模式访问
+# 3. 清除浏览器缓存
+
+# 验证前端容器状态
+docker compose ps frontend
+# 状态可能显示 unhealthy，但实际可以访问
+```
+
+**最终效果**
+- 前端资源正常加载
+- 应用界面正常显示
+
+---
+
+### B.6.2 用户注册 400 Bad Request
+
+**问题现象**
+```
+POST http://121.199.45.201:3000/api/v1/auth/register 400 (Bad Request)
+```
+
+**根本原因**
+- 后端密码验证要求严格：
+  - 至少 8 个字符
+  - 必须包含小写字母
+  - 必须包含大写字母
+  - 必须包含数字
+  - 不能太简单（如 password, 12345678）
+
+**解决步骤**
+```bash
+# 使用符合要求的密码
+# ✅ 正确的密码示例：
+MyPass123
+StudyHub2024
+YourPassword1
+
+# ❌ 错误的密码示例：
+password      # 太简单
+12345678      # 太简单
+abc123        # 缺少大写字母
+```
+
+**最终效果**
+- 用户注册成功
+- 可以正常登录使用
+
+---
+
+## B.7 部署配置问题
+
+### B.7.1 环境变量优先级问题
+
+**问题现象**
+- 修改了 `.env.docker` 中的配置
+- 重启容器后配置未生效
+- 后端仍使用旧配置
+
+**根本原因**
+- `docker-compose.yml` 中硬编码的环境变量优先级高于 `.env.docker`
+- 需要同时修改 `docker-compose.yml` 中的配置
+
+**解决步骤**
+```yaml
+# docker-compose.yml 配置优先级（从高到低）：
+# 1. docker-compose.yml 中直接定义的环境变量
+# 2. .env.docker 文件中的变量
+# 3. 系统环境变量
+
+# 最佳实践：
+# - 敏感信息使用 .env.docker
+# - 固定配置直接写在 docker-compose.yml
+# - 确保两者一致
+```
+
+**配置检查清单**
+| 配置项 | .env.docker | docker-compose.yml | 说明 |
+|--------|-------------|-------------------|------|
+| FRONTEND_URL | ✅ | ✅ | 两者必须一致 |
+| DB_PASSWORD | ✅ | ❌ | 只在 .env.docker |
+| JWT_SECRET | ✅ | ❌ | 只在 .env.docker |
+| REDIS_PASSWORD | ✅ | ❌ | 只在 .env.docker |
+
+---
+
+## B.8 经验总结与最佳实践
+
+### B.8.1 部署前检查清单
+
+```markdown
+- [ ] 服务器配置：4核8G 或更高
+- [ ] 操作系统：Alibaba Cloud Linux 3 / CentOS 8 / Ubuntu 20.04+
+- [ ] Docker 版本：20.10.0+
+- [ ] Docker Compose：v2.0.0+
+- [ ] 安全组端口：80, 443, 3000, 8080, 5432, 6379
+- [ ] 域名或公网 IP 已配置
+```
+
+### B.8.2 部署步骤总结
+
+```bash
+# 1. 服务器环境准备
+sudo yum update -y
+curl -fsSL https://get.docker.com | sh
+sudo systemctl enable --now docker
+
+# 2. 配置 Docker 国内镜像
+sudo tee /etc/docker/daemon.json << 'EOF'
+{
+  "registry-mirrors": [
+    "https://docker.mirrors.ustc.edu.cn",
+    "https://hub-mirror.c.163.com"
+  ]
+}
+EOF
+sudo systemctl restart docker
+
+# 3. 上传项目代码
+git clone <your-repo> /opt/StudyHub
+cd /opt/StudyHub
+
+# 4. 配置环境变量
+cp .env.docker.example .env.docker
+# 编辑 .env.docker，设置数据库密码、JWT 密钥等
+
+# 5. 修改 docker-compose.yml
+# - 更新 FRONTEND_URL 为公网 IP
+# - 检查端口映射
+
+# 6. 修改前端 API 地址
+sed -i 's/localhost:3000/<你的IP>:3000/g' \
+  frontend/src/js/modules/api.js \
+  frontend/src/js/modules/config.js
+
+# 7. 构建并启动服务
+docker compose up -d --build
+
+# 8. 初始化数据库
+docker compose exec postgres psql -U postgres -c "CREATE DATABASE studyhub;"
+# 执行数据库迁移
+
+# 9. 验证部署
+curl http://<你的IP>:3000/api/health
+curl -I http://<你的IP>:8080
+```
+
+### B.8.3 常见问题速查
+
+| 问题 | 快速解决 |
+|------|----------|
+| `docker-compose: command not found` | 使用 `docker compose`（空格） |
+| 镜像拉取超时 | 配置国内 Docker 镜像源 |
+| `npm ci` 失败 | 改为 `npm install --omit=dev` |
+| TypeScript 编译错误 | 移除 `import.meta`，使用 `process.cwd()` |
+| CORS 错误 | 检查 `FRONTEND_URL` 配置 |
+| Redis 启动失败 | 移除密码中的特殊字符 |
+| 502 Bad Gateway | 强制刷新浏览器或清除缓存 |
+| 注册 400 错误 | 使用符合要求的强密码 |
+
+### B.8.4 服务器信息
+
+```yaml
+服务器: 阿里云 ECS
+操作系统: Alibaba Cloud Linux 3 (CentOS 兼容)
+配置: 4核8G
+公网 IP: 121.199.45.201
+部署路径: /opt/StudyHub
+访问地址:
+  - 前端: http://121.199.45.201:8080
+  - API: http://121.199.45.201:3000
+```
+
+---
+
+*文档创建时间：2026-03-25*
+*适用版本：StudyHub v1.4.0*

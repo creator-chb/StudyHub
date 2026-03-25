@@ -40,7 +40,7 @@ const ApiStorageAdapter = (function() {
     // API 基础配置
     // =============================================
 
-    const API_BASE_URL = 'http://localhost:3000/api/v1';
+    const API_BASE_URL = 'http://121.199.45.201:3000/api/v1';
 
     /**
      * 获取访问令牌

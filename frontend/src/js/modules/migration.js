@@ -8,7 +8,7 @@ const Migration = (function() {
     'use strict';
 
     // API 基础 URL
-    const API_BASE_URL = 'http://localhost:3000/api/v1';
+    const API_BASE_URL = 'http://121.199.45.201:3000/api/v1';
 
     // =============================================
     // 本地数据检测

@@ -174,6 +174,17 @@ const Auth = (function() {
                 Toast.show('登录成功', 'success');
                 closeModal();
                 updateAuthUI();
+                
+                // 登录成功后切换到 API 存储模式
+                if (typeof Storage !== 'undefined' && Storage.switchMode) {
+                    try {
+                        const result = await Storage.switchMode('api');
+                        console.log('[Auth] 切换到 API 模式:', result);
+                    } catch (e) {
+                        console.error('[Auth] 切换存储模式失败:', e);
+                    }
+                }
+                
                 notifyListeners('login', response.data.user);
             }
         } catch (error) {
@@ -318,6 +329,16 @@ const Auth = (function() {
      */
     async function handleLogout() {
         try {
+            // 先切换回本地模式，避免后续操作触发 API 请求
+            if (typeof Storage !== 'undefined' && Storage.switchMode) {
+                try {
+                    await Storage.switchMode('local');
+                    console.log('[Auth] 已切换到本地模式');
+                } catch (e) {
+                    console.error('[Auth] 切换本地模式失败:', e);
+                }
+            }
+            
             await ApiClient.logout();
             Toast.show('已登出', 'success');
             updateAuthUI();

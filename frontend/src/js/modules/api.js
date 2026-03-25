@@ -8,8 +8,8 @@ const ApiClient = (function() {
     'use strict';
 
     // API 基础配置
-    const API_BASE_URL = 'http://localhost:3000/api/v1';
-    const AUTH_BASE_URL = 'http://localhost:3000/api';
+    const API_BASE_URL = 'http://121.199.45.201:3000/api/v1';
+    const AUTH_BASE_URL = 'http://121.199.45.201:3000/api';
 
     // Token 存储键名
     const ACCESS_TOKEN_KEY = 'studyhub_access_token';

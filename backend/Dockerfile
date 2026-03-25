@@ -11,6 +11,9 @@ FROM node:18-alpine AS builder
 # 设置工作目录
 WORKDIR /app
 
+# 更换 Alpine 软件源为国内镜像
+RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories
+
 # 安装构建依赖（某些 npm 包需要 Python 和 make）
 RUN apk add --no-cache python3 make g++
 
@@ -32,6 +35,9 @@ RUN npm run build
 # ---------------------------------------------
 FROM node:18-alpine AS runner
 
+# 更换 Alpine 软件源为国内镜像
+RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories
+
 # 安装 dumb-init 用于正确处理信号
 RUN apk add --no-cache dumb-init
 
@@ -46,7 +52,7 @@ WORKDIR /app
 COPY package*.json ./
 
 # 只安装生产依赖
-RUN npm ci --only=production && \
+RUN npm install --omit=dev && \
     npm cache clean --force
 
 # 从构建阶段复制编译后的代码
