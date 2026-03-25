@@ -6,6 +6,31 @@
 
 ---
 
+## [2.0.2] - 2026-03-25
+
+### 修复 🐛
+- **编辑任务 400 错误**：`app.js` 任务编辑模态框中将后端返回的完整 ISO 时间字符串（含秒数和时区 `Z`）截取为 `YYYY-MM-DDTHH:mm` 格式，防止 `datetime-local` 输入框因格式不兼容而返回空字符串，导致 Zod 校验 `deadline` 失败
+
+---
+
+## [2.0.1] - 2026-03-25
+
+### 修复 🐛
+- **Redis 缓存键 anonymous 问题**：`authenticate` 中间件移至 `cache` 中间件之前，确保缓存键包含正确的 `userId`
+- **写操作后缓存脏读**：`links.ts`、`tasks.ts`、`categories.ts` 所有写操作后调用 `clearResponseCache(userId)`，防止 5 分钟 TTL 内返回旧数据
+- **同步全部失败问题**：`ApiStorageAdapter.sync()` 改用 `Promise.allSettled`，单个接口失败不阻断整体同步
+- **重复 URL 误报**：API 模式下 `validateLink()` 跳过本地重复 URL 校验，由服务端唯一约束权威判断
+- **已登录用户刷新后数据空白**：`frontend/index.html` 添加 `await Storage.init()` 和返回用户自动渲染逻辑
+- **登录后数据不显示**：`auth.js` 登录成功后显式调用 `App.renderLinks()` 和 `App.renderTasks()`
+
+### 优化 ⚡
+- **移动端 HTML 缓存策略**：`frontend/nginx.conf` 将 `Cache-Control` 从 `no-cache` 升级为 `no-cache, no-store, must-revalidate`，彻底防止移动端缓存旧版 `index.html`
+
+### 文档 📝
+- `knowledge/experience/f.md` 补充跨端同步问题专项章节（6.8~6.12、7.6、B.4.3、B.6.3、B.7.2）
+
+---
+
 ## [2.0.0] - 2026-03-23
 
 ### 新增 ✨

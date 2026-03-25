@@ -355,7 +355,7 @@ const App = (function() {
                 </div>
                 <div class="form-group">
                     <label>截止时间 *</label>
-                    <input id="modalTaskTime" type="datetime-local" value="${task ? task.time : defaultTime}">
+                    <input id="modalTaskTime" type="datetime-local" value="${task ? (task.time || '').slice(0, 16) : defaultTime}">
                     <div class="error-message" id="taskTimeError" style="display:none;"></div>
                 </div>
                 <div class="form-group">

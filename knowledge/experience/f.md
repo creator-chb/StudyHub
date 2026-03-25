@@ -693,6 +693,219 @@ pinBtn.addEventListener('click', async (e) => {
 <script src="js/app.js?v=4"></script>
 ```
 
+### 6.8 Redis 响应缓存键全为 anonymous（中间件执行顺序问题）
+
+**现象**：登录用户的 GET 请求返回空数据，后端日志显示 `[Cache] 命中: studyhub:response:anonymous:/api/v1/links`，所有用户共享同一份空缓存。
+
+**根本原因**：
+- `backend/src/index.ts` 中，`cache` 中间件注册在 `authenticate` 中间件**之前**
+- 缓存中间件在生成缓存键时读取 `req.user?.userId`，此时 `req.user` 尚未被赋值
+- 所有请求的缓存键均降级为 `anonymous`，导致全员共享同一份缓存数据
+
+```typescript
+// ❌ 错误顺序（cache 先于 authenticate）
+app.use('/api/v1/links', apiRateLimiter, linksCache, linksRouter);
+
+// ✅ 正确顺序（authenticate 必须在 cache 之前）
+app.use('/api/v1/links', apiRateLimiter, authenticate, linksCache, linksRouter);
+```
+
+**修复步骤**：
+```typescript
+// backend/src/index.ts
+import { authenticate } from './middleware/auth.js';
+
+app.use('/api/v1/categories', apiRateLimiter, authenticate, categoriesCache, categoriesRouter);
+app.use('/api/v1/links',      apiRateLimiter, authenticate, linksCache,      linksRouter);
+app.use('/api/v1/tasks',      apiRateLimiter, authenticate, tasksCache,      tasksRouter);
+```
+
+**经验教训**：
+- Express 中间件的执行是严格按注册顺序的，依赖上游中间件设置的 `req.xxx` 值时，必须保证上游先执行
+- 缓存中间件的缓存键生成逻辑依赖认证信息时，认证中间件**必须**在缓存中间件之前注册
+
+---
+
+### 6.9 写操作后 Redis 响应缓存未失效（脏读问题）
+
+**现象**：
+- 创建链接后立即查询，仍返回旧数据（5 分钟 TTL 内）
+- 删除链接后再创建相同 URL，提示"该链接已存在"，但页面列表中不显示该链接
+
+**根本原因**：
+- 后端对 GET 请求的响应做了 Redis 缓存（TTL 5 分钟）
+- POST/PUT/DELETE 等写操作执行后，对应用户的 GET 缓存**没有被主动清除**
+- 前端内存缓存（`ApiStorageAdapter.cache`）显示新数据，但下次同步时从 Redis 拿到旧数据
+
+**修复步骤**：
+```typescript
+// backend/src/utils/cache.ts 中已有 clearResponseCache 工具函数
+export async function clearResponseCache(userId: string): Promise<void> {
+  // 删除该用户所有 GET 响应缓存
+}
+
+// 在所有写操作路由中调用（以 links.ts 为例）
+import { clearResponseCache } from '../middleware/cache.js';
+
+// POST 创建链接后
+router.post('/', authenticate, async (req, res) => {
+  // ... 创建逻辑 ...
+  clearResponseCache(userId).catch(err => console.error('[Links] 清除缓存失败:', err));
+  res.json({ success: true, data: newLink });
+});
+
+// 同理：PUT 更新、DELETE 删除、PATCH 置顶均需清除缓存
+```
+
+**影响文件**：`backend/src/routes/links.ts`、`tasks.ts`、`categories.ts`
+
+**经验教训**：
+- 引入响应级缓存后，**写操作必须同步清除对应用户的缓存**，否则产生脏读
+- 清除缓存的调用应放在成功响应**之前**（或 fire-and-forget 不阻塞响应），避免缓存清除失败影响主流程
+
+---
+
+### 6.10 同步接口 Promise.all 导致全部失败
+
+**现象**：`tasks` 接口暂时不可用时，整体同步返回 `result.success = false`，前端不渲染任何数据（links、categories 也不显示）。
+
+**根本原因**：
+```javascript
+// ApiStorageAdapter.sync() 中使用 Promise.all
+const [links, categories, tasks] = await Promise.all([
+    fetchLinks(),
+    fetchCategories(),
+    fetchTasks()  // 任意一个失败 → 整体抛出异常
+]);
+// tasks 失败 → catch → return false → reload() 不执行 → 页面空白
+```
+
+**修复步骤**：
+```javascript
+// 改用 Promise.allSettled，支持部分成功降级
+const [linksResult, categoriesResult, tasksResult] = await Promise.allSettled([
+    fetchLinks(),
+    fetchCategories(),
+    fetchTasks()
+]);
+
+const links      = linksResult.status      === 'fulfilled' ? linksResult.value      : [];
+const categories = categoriesResult.status === 'fulfilled' ? categoriesResult.value : [];
+const tasks      = tasksResult.status      === 'fulfilled' ? tasksResult.value      : [];
+
+// 只要核心数据（links）同步成功即视为成功
+if (linksResult.status === 'rejected') {
+    throw linksResult.reason;
+}
+// tasks/categories 失败仅打印警告，不阻断流程
+if (tasksResult.status === 'rejected') {
+    console.warn('[ApiStorage] tasks 同步失败（降级为空）:', tasksResult.reason);
+}
+```
+
+**经验教训**：
+- 多接口并行请求时，优先使用 `Promise.allSettled` 而非 `Promise.all`
+- 区分"核心数据"和"辅助数据"，核心数据失败才真正失败，辅助数据失败降级处理
+
+---
+
+### 6.11 API 模式下本地重复 URL 校验使用脏缓存
+
+**现象**：
+- 创建链接 A → 删除链接 A → 再次创建相同 URL → 前端报"该链接已存在"
+- 实际上服务器已删除，只是前端内存缓存（`LinkManager.links`）中还有旧记录
+
+**根本原因**：
+```javascript
+// linkManager.js validateLink() 中
+const existingLink = links.find(l => l.url === link.url && l.id !== link.id);
+if (existingLink) {
+    errors.push('该链接已存在');  // 此处 links 是内存缓存，可能是脏数据
+}
+```
+
+API 模式下，本地内存缓存与服务器状态之间存在时间窗口差，不应用本地缓存做业务校验。
+
+**修复步骤**：
+```javascript
+// API 模式跳过本地重复 URL 校验，由服务器权威判断
+if (!Storage.isApiMode()) {
+    const existingLink = links.find(l => l.url === link.url && l.id !== link.id);
+    if (existingLink) {
+        errors.push('该链接已存在');
+    }
+}
+// API 模式下，后端数据库的唯一约束将返回 409 Conflict
+```
+
+**经验教训**：
+- API 模式下，前端内存缓存只作为展示用途，**不应用于业务校验**（数据新鲜度无法保证）
+- 唯一性约束等校验应下沉到服务端，前端校验只做格式/长度等无状态校验
+
+---
+
+### 6.12 已登录用户刷新页面后数据不显示
+
+**现象**：PC 端或手机端刷新页面后，虽处于登录状态但页面空白，无链接和任务数据。
+
+**根本原因**（多层叠加）：
+
+1. **`frontend/index.html` 缺少 `Storage.init()` 调用**
+   - `DOMContentLoaded` 回调为同步函数，未 `await Storage.init()`
+   - Storage 未完成初始化就进行后续操作，导致数据同步被跳过
+
+2. **缺少已登录用户的自动渲染逻辑**
+   - 页面加载时没有检测"已登录且处于 API 模式"的情况
+   - 只在登录事件触发时渲染，刷新后不触发登录事件
+
+3. **`auth.js` 登录后未显式调用 `App.renderLinks/Tasks`**
+   - `handleLogin` 只调用了 `LinkManager.reload()` 和 `TaskManager.reload()`
+   - 但 `notifyListeners()` 在某些时序下未能触发渲染
+
+**修复步骤**：
+
+```javascript
+// frontend/index.html - DOMContentLoaded 改为 async
+document.addEventListener('DOMContentLoaded', async () => {
+    // 1. 必须最先初始化存储（await！）
+    await Storage.init();
+
+    // 2. 绑定按钮等 UI 事件...
+
+    // 3. 如果已登录且处于 API 模式，主动触发渲染
+    if (typeof Auth !== 'undefined' && Auth.isAuthenticated()) {
+        if (Storage.getMode() === 'api') {
+            LinkManager.reload();
+            TaskManager.reload();
+            App.renderLinks();
+            App.renderTasks();
+        }
+    }
+});
+```
+
+```javascript
+// frontend/src/js/modules/auth.js - 登录成功后显式渲染
+if (result.success) {
+    if (typeof TaskManager !== 'undefined' && TaskManager.reload) {
+        TaskManager.reload();
+    }
+    if (typeof LinkManager !== 'undefined' && LinkManager.reload) {
+        LinkManager.reload();
+    }
+    // 显式触发渲染，防止 notifyListeners 时序问题
+    if (typeof App !== 'undefined') {
+        App.renderLinks();
+        App.renderTasks();
+    }
+}
+```
+
+**经验教训**：
+- `DOMContentLoaded` 回调只要内部有 `await`，就**必须**声明为 `async`
+- 渲染触发需要覆盖三个入口：**登录时**、**页面刷新（已登录）**、**登出后重新登录**
+- 参见 4.1 节的"正确的初始化顺序"
+
 ---
 
 ## 七、开发规范与最佳实践
@@ -793,6 +1006,47 @@ console.error('[Auth] 监听器错误:', e);
 | 页面刷新（已登录） | 是否在 `Storage.init()` 后重新加载 | `if (Storage.getMode() === 'api') { NoteManager.reload(); }` |
 | 模式切换 | 是否同步所有相关模块的数据 | `Storage.switchMode('api').then(() => NoteManager.reload())` |
 | CRUD 操作 | 是否通过 Storage 层统一处理 | `Storage.addNote()`, `Storage.updateNote()` 等 |
+
+### 7.6 后端响应缓存设计规范
+
+引入 Redis 响应级缓存时，必须同时处理缓存失效，否则会产生脏读。
+
+**中间件注册顺序（强制要求）**：
+
+```typescript
+// ✅ 正确：认证 → 缓存 → 路由处理器
+app.use('/api/v1/links', apiRateLimiter, authenticate, linksCache, linksRouter);
+
+// ❌ 错误：缓存在认证之前，req.user 未初始化
+app.use('/api/v1/links', apiRateLimiter, linksCache, linksRouter);
+```
+
+**写操作必须清除缓存（强制要求）**：
+
+```typescript
+// 每个写操作路由（POST/PUT/DELETE/PATCH）末尾均须清除该用户的响应缓存
+import { clearResponseCache } from '../middleware/cache.js';
+
+router.post('/', authenticate, async (req, res) => {
+    const userId = req.user!.userId;
+    // ... 写操作逻辑 ...
+    
+    // 清除缓存（非阻塞，不影响响应速度）
+    clearResponseCache(userId).catch(err => console.error('[Cache] 清除失败:', err));
+    
+    res.json({ success: true, data: result });
+});
+```
+
+**后端响应缓存检查清单**：
+
+| 检查项 | 说明 |
+|--------|------|
+| `authenticate` 在 `cache` 之前 | 确保缓存键包含正确的 userId |
+| POST 写操作后清缓存 | 防止新增数据在 TTL 内不可见 |
+| PUT 写操作后清缓存 | 防止更新数据在 TTL 内不可见 |
+| DELETE 写操作后清缓存 | 防止已删数据仍出现在缓存中 |
+| PATCH 写操作后清缓存 | 批量操作同理 |
 
 ---
 
@@ -992,7 +1246,7 @@ const api = {
 
 ---
 
-*最后更新：2026-03-22（完整重构版）*
+*最后更新：2026-03-25（完整重构版 + 跨端同步问题修复补充）*
 
 ---
 
@@ -1337,6 +1591,52 @@ sed -i 's/localhost:3000/121.199.45.201:3000/g' \
 
 ---
 
+### B.4.3 CORS 报错实为后端接口崩溃
+
+**问题现象**
+```
+Access to fetch at 'http://121.199.45.201:3000/api/v1/tasks' 
+from origin 'http://121.199.45.201:8080' has been blocked by CORS policy: 
+No 'Access-Control-Allow-Origin' header is present on the requested resource.
+```
+同时，`/api/v1/links` 和 `/api/v1/categories` 无 CORS 问题，只有 `/api/v1/tasks` 报错。
+
+**根本原因**
+- PostgreSQL 数据库容器（`postgres` 服务）未运行
+- `tasks` 接口依赖数据库查询，数据库连接失败导致后端**内部崩溃**，未返回任何响应
+- 无响应 = 无 CORS 响应头 = 浏览器报 CORS 错误
+- `links`/`categories` 因命中 Redis 缓存（`anonymous` 键）正常返回，故无 CORS 报错
+
+**诊断方法**
+```bash
+# 1. 检查容器状态（确认 postgres 是否运行）
+docker compose ps
+
+# 2. 直接 curl 测试，绕过浏览器 CORS 检查
+curl -H "Authorization: Bearer <token>" \
+  http://121.199.45.201:3000/api/v1/tasks
+
+# 3. 查看后端日志
+docker compose logs backend --tail=50
+# 若看到数据库连接错误，则是 DB 问题而非 CORS
+```
+
+**解决步骤**
+```bash
+# 启动数据库服务（注意：服务名是 postgres，不是 db）
+docker compose up -d postgres
+
+# 重启后端（确保重新连接数据库）
+docker compose restart backend
+```
+
+**经验教训**
+- **遇到 CORS 报错，第一反应不是看 CORS 配置，而是看后端日志**
+- 只有部分接口 CORS 报错时，优先排查那些接口是否有异常（DB/Redis 依赖）
+- `links`/`categories` 命中缓存不报错，`tasks` 走 DB 报错，是诊断 DB 故障的有力线索
+
+---
+
 ## B.5 Redis 密码配置
 
 ### B.5.1 Redis requirepass 特殊字符解析失败
@@ -1438,6 +1738,59 @@ abc123        # 缺少大写字母
 
 ---
 
+### B.6.3 移动端浏览器缓存旧版 index.html 导致新代码不生效
+
+**问题现象**
+- 服务器重新部署了修复版代码（含 `Storage.init()` 等关键修复）
+- PC 端强制刷新后正常，但手机 Edge 浏览器仍运行旧逻辑
+- 手机端清除浏览器缓存后，问题立即消失，数据正常显示
+
+**根本原因**
+- `nginx.conf` 对 `/` 路由仅配置了 `Cache-Control: no-cache`
+- `no-cache` 含义：使用前需向服务器验证，但**并不禁止缓存**
+- 移动端浏览器（尤其是弱网状态）可能跳过验证直接使用本地缓存
+- 旧版 `index.html` 缺少关键初始化代码，被持续使用
+
+**`no-cache` vs `no-store` 区别**：
+
+| 指令 | 行为 | 适用场景 |
+|------|------|----------|
+| `no-cache` | 缓存但每次使用前须向服务器验证 | 有版本控制的静态资源 |
+| `no-store` | 完全禁止缓存，每次必须重新下载 | HTML 入口文件 |
+| `must-revalidate` | 缓存过期后必须重新验证 | 配合 max-age 使用 |
+
+**解决步骤**：
+```nginx
+# frontend/nginx.conf
+# 修改前：
+location / {
+    try_files $uri $uri/ /index.html;
+    add_header Cache-Control "no-cache";
+}
+
+# 修改后：彻底禁止 HTML 文件缓存
+location / {
+    try_files $uri $uri/ /index.html;
+    add_header Cache-Control "no-cache, no-store, must-revalidate";
+    add_header Pragma "no-cache";
+    add_header Expires "0";
+}
+```
+
+**JS/CSS 保持长期缓存不变**（文件名带 hash/版本号时内容变化文件名也变）：
+```nginx
+location ~* \.(js|css|png|jpg|ico|svg)$ {
+    expires 1y;
+    add_header Cache-Control "public, immutable";
+}
+```
+
+**最终效果**
+- 任何浏览器（包括移动端）每次访问都从服务器获取最新 `index.html`
+- 部署新版本后无需用户手动清除缓存
+
+---
+
 ## B.7 部署配置问题
 
 ### B.7.1 环境变量优先级问题
@@ -1471,6 +1824,48 @@ abc123        # 缺少大写字母
 | DB_PASSWORD | ✅ | ❌ | 只在 .env.docker |
 | JWT_SECRET | ✅ | ❌ | 只在 .env.docker |
 | REDIS_PASSWORD | ✅ | ❌ | 只在 .env.docker |
+
+---
+
+### B.7.2 Docker 服务名混淆（exec db vs exec postgres）
+
+**问题现象**
+```bash
+$ docker compose exec db psql -U postgres
+no such service: db
+```
+
+**根本原因**
+- `docker-compose.yml` 中数据库服务名定义为 `postgres`，而非 `db`
+- 操作时习惯性使用 `db` 作为服务名，导致命令失败
+
+**解决步骤**
+```bash
+# ❌ 错误：使用了不存在的服务名
+docker compose exec db psql -U postgres
+
+# ✅ 正确：查看实际服务名
+docker compose ps
+# 输出中看到：studyhub-postgres-1
+
+# ✅ 使用正确的服务名
+docker compose exec postgres psql -U postgres -d studyhub
+```
+
+**快速记忆规则**：
+- 服务名在 `docker-compose.yml` 的顶层 `services:` 下定义
+- 容器名 = `项目名-服务名-序号`（如 `studyhub-postgres-1`）
+- 操作容器时用**服务名**（`docker compose exec <服务名>`），不是容器名
+
+**建议**：在 `docker-compose.yml` 中添加注释标记服务名：
+```yaml
+services:
+  postgres:   # ← 数据库服务名（exec 时用这个）
+    image: postgres:15-alpine
+    ...
+  backend:    # ← 后端服务名
+    ...
+```
 
 ---
 
@@ -1543,10 +1938,14 @@ curl -I http://<你的IP>:8080
 | 镜像拉取超时 | 配置国内 Docker 镜像源 |
 | `npm ci` 失败 | 改为 `npm install --omit=dev` |
 | TypeScript 编译错误 | 移除 `import.meta`，使用 `process.cwd()` |
-| CORS 错误 | 检查 `FRONTEND_URL` 配置 |
+| CORS 错误 | 先查后端日志确认是否崩溃，再看 `FRONTEND_URL` 配置 |
 | Redis 启动失败 | 移除密码中的特殊字符 |
 | 502 Bad Gateway | 强制刷新浏览器或清除缓存 |
 | 注册 400 错误 | 使用符合要求的强密码 |
+| 所有用户数据返回空（anonymous缓存） | 检查 `authenticate` 是否在 `cache` 中间件之前 |
+| 写操作后数据不更新 | 在路由写操作后调用 `clearResponseCache(userId)` |
+| 手机端登录后数据空白 | 检查 `nginx.conf` 是否配置 `no-store`，并确认 `index.html` 有 `await Storage.init()` |
+| `docker compose exec db` 失败 | 用 `docker compose ps` 查实际服务名（通常是 `postgres`） |
 
 ### B.8.4 服务器信息
 
