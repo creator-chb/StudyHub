@@ -10,12 +10,12 @@ RUN addgroup -g 1001 -S nginx-group && \
     adduser -S nginx-user -u 1001 -G nginx-group
 
 # 复制自定义 Nginx 配置
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY frontend/nginx.conf /etc/nginx/conf.d/default.conf
 
 # 复制前端静态文件
 # 注意：根目录的 index.html 是主应用入口
-COPY index.html /usr/share/nginx/html/
-COPY src /usr/share/nginx/html/src/
+COPY frontend/index.html /usr/share/nginx/html/
+COPY frontend/src /usr/share/nginx/html/src/
 
 # 设置文件权限
 RUN chown -R nginx-user:nginx-group /usr/share/nginx/html && \
