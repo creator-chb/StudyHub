@@ -189,8 +189,10 @@ const Auth = (function() {
                             if (typeof LinkManager !== 'undefined' && LinkManager.reload) {
                                 LinkManager.reload();
                             }
-                            if (typeof CategoryManager !== 'undefined' && CategoryManager.reload) {
-                                CategoryManager.reload();
+                            // 显式触发渲染（防止 notifyListeners 未能触发渲染的情况）
+                            if (typeof App !== 'undefined') {
+                                App.renderLinks();
+                                App.renderTasks();
                             }
                         }
                     } catch (e) {

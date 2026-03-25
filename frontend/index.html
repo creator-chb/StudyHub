@@ -122,7 +122,10 @@
 
     <!-- 绑定按钮事件 -->
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', async () => {
+            // 初始化存储模块（必须在其他模块之前）
+            await Storage.init();
+
             // 添加链接按钮
             document.getElementById('btnAddLink').addEventListener('click', () => {
                 App.openLinkModal();
@@ -135,20 +138,17 @@
 
             // 分类筛选
             document.getElementById('categoryFilter').addEventListener('change', () => {
-                // 触发重新渲染
-                LinkManager.subscribe(() => {})();
+                App.renderLinks();
             });
 
             // 优先级筛选
             document.getElementById('priorityFilter').addEventListener('change', () => {
-                // 触发重新渲染
-                TaskManager.subscribe(() => {})();
+                App.renderTasks();
             });
 
             // 状态筛选
             document.getElementById('statusFilter').addEventListener('change', () => {
-                // 触发重新渲染
-                TaskManager.subscribe(() => {})();
+                App.renderTasks();
             });
 
             // 渲染分类选项
@@ -156,6 +156,17 @@
             const categories = LinkManager.getCategories();
             categorySelect.innerHTML = '<option value="">全部分类</option>' +
                 categories.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+
+            // 如果已登录且处于 API 模式（Storage.init 已同步），主动渲染
+            if (typeof Auth !== 'undefined' && Auth.isAuthenticated()) {
+                if (Storage.getMode() === 'api') {
+                    LinkManager.reload();
+                    TaskManager.reload();
+                    App.renderLinks();
+                    App.renderTasks();
+                    console.log('[App] 已登录 API 模式，数据已渲染');
+                }
+            }
         });
     </script>
 </body>
