@@ -11,7 +11,7 @@
 3. [存储层架构设计](#三存储层架构设计)
 4. [初始化流程与时序管理](#四初始化流程与时序管理)
 5. [数据同步机制](#五数据同步机制)
-6. [常见问题与解决方案](#六常见问题与解决方案)
+6. [常见问题与解决方案](#六常见问题与解决方案)（6.1~6.13）
 7. [开发规范与最佳实践](#七开发规范与最佳实践)
 8. [问题排查指南](#八问题排查指南)
 9. [后续改进方向](#九后续改进方向)
@@ -908,6 +908,211 @@ if (result.success) {
 
 ---
 
+### 6.13 编辑任务时 `deadline` 字段为空导致 400 错误
+
+#### 错误表现
+
+```
+PUT http://121.199.45.201:3000/api/v1/tasks/<taskId> 400 (Bad Request)
+
+[ApiStorage] 请求失败: .../tasks/<taskId>  Error: 请求参数错误
+    at apiRequest (ApiStorageAdapter.js:83:31)
+    at async updateTask (ApiStorageAdapter.js:379:26)
+    at async adapter.updateTask (ApiStorageAdapter.js:839:22)
+    at async Object.update (taskManager.js:236:32)
+    at async Object.onClick (app.js:407:48)
+
+[StudyHub Error] { type: 'UNKNOWN', message: '请求参数错误', code: 400, ... }
+```
+
+触发路径：用户点击编辑任务按钮 → 勾选新链接 → 点击"保存" → 400 Bad Request。
+
+---
+
+#### 根本原因分析
+
+**问题链（三层叠加）**：
+
+```
+后端返回 ISO 时间字符串
+  "2026-03-25T12:00:00.000Z"          ← 含秒数 + UTC 时区标记
+          │
+          ▼
+app.js 直接写入 datetime-local 属性
+  value="2026-03-25T12:00:00.000Z"    ← ❌ datetime-local 不接受该格式
+          │
+          ▼
+浏览器解析失败，input.value 返回 ""
+  document.getElementById('modalTaskTime').value  →  ""
+          │
+          ▼
+updateTask 组装请求体
+  body.deadline = ""                  ← 空字符串
+          │
+          ▼
+后端 Zod 校验
+  z.string().refine(val => !isNaN(Date.parse(val)))
+  Date.parse("")  →  NaN              ← ❌ 校验失败 → 400
+```
+
+**关键细节**：
+
+HTML5 规范规定 `<input type="datetime-local">` 的合法值格式为：
+
+| 格式 | 示例 | 是否合法 |
+|------|------|---------|
+| `YYYY-MM-DDTHH:mm` | `2026-03-25T12:00` | ✅ |
+| `YYYY-MM-DDTHH:mm:ss` | `2026-03-25T12:00:00` | ✅ |
+| `YYYY-MM-DDTHH:mm:ss.SSS` | `2026-03-25T12:00:00.000` | ✅ |
+| `YYYY-MM-DDTHH:mm:ss.SSSZ` | `2026-03-25T12:00:00.000Z` | ❌（含时区） |
+
+PostgreSQL `TIMESTAMP WITH TIME ZONE` 字段由 `pg` 驱动序列化为 JSON 时，**始终输出 ISO 8601 完整格式**（含 `.000Z`），前端不加处理直接赋值给 `datetime-local` 则必然失败。
+
+**为什么用户以为只有"添加链接后"才报错？**
+
+该错误在任何一次编辑保存时均会触发，但用户首次发现问题时的操作恰好是"添加链接"，因此将两件事联系起来。实际上，只要存在从 API 加载的任务且不修改时间字段，点击保存就会 400。
+
+---
+
+#### 涉及文件
+
+| 文件 | 改动说明 |
+|------|----------|
+| `frontend/src/js/app.js` | 修复 `datetime-local` 输入框的 `value` 赋值 |
+| `frontend/src/js/modules/storage/ApiStorageAdapter.js` | 新增调试日志：打印请求体 + 展开后端字段级错误 |
+
+---
+
+#### 解决步骤
+
+**Step 1：`app.js` — 截取 ISO 字符串前 16 位**
+
+```javascript
+// ❌ 修复前
+<input id="modalTaskTime" type="datetime-local"
+       value="${task ? task.time : defaultTime}">
+
+// ✅ 修复后
+<input id="modalTaskTime" type="datetime-local"
+       value="${task ? (task.time || '').slice(0, 16) : defaultTime}">
+```
+
+`slice(0, 16)` 将 `"2026-03-25T12:00:00.000Z"` → `"2026-03-25T12:00"`，符合 `datetime-local` 规范，浏览器可正常读写。
+
+**Step 2：`ApiStorageAdapter.js` — 增强错误诊断能力**
+
+```javascript
+// apiRequest() 中：打印后端字段级错误
+if (!response.ok) {
+    if (data.errors && data.errors.length > 0) {
+        console.error('[ApiStorage] 校验错误详情:', JSON.stringify(data.errors));
+    }
+    const error = new Error(data.message || '请求失败');
+    error.status = response.status;
+    error.data = data;
+    throw error;
+}
+
+// updateTask() 中：打印发送的请求体
+console.log('[Debug] updateTask 发送体:', JSON.stringify(body));
+const response = await apiRequest(`/tasks/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(body)
+});
+```
+
+---
+
+#### 架构设计考量
+
+**前后端时间格式约定**：
+
+后端（PostgreSQL + Node.js pg）输出的时间字段均为 UTC ISO 字符串，与 HTML 表单控件的格式存在天然不兼容。建议在适配器层（`ApiStorageAdapter`）统一处理：
+
+```javascript
+// 方案 A：适配器层截取（推荐，集中处理）
+// ApiStorageAdapter.js — fetchTasks / updateTask 返回值处理
+function toDatetimeLocalStr(isoStr) {
+    if (!isoStr) return '';
+    return isoStr.slice(0, 16); // "YYYY-MM-DDTHH:mm"
+}
+
+return {
+    id: task.id,
+    name: task.name,
+    time: toDatetimeLocalStr(task.deadline), // 统一转换
+    ...
+};
+
+// 方案 B：视图层截取（当前实现，简单有效）
+// app.js
+value="${task ? (task.time || '').slice(0, 16) : defaultTime}"
+```
+
+当前采用方案 B（视图层截取），适合快速修复。若后续有更多地方用到时间字段，建议升级为方案 A（适配器层统一转换），避免遗漏。
+
+**时区说明**：
+
+`slice(0, 16)` 保留 ISO 字符串中的绝对时间部分，不做时区转换。只要前后端统一使用同一时区策略（如均以 UTC 处理），回显与存储的时间值就保持一致。若需本地时区显示，可在适配器层补充以下转换：
+
+```javascript
+function toLocalDatetimeStr(isoStr) {
+    const d = new Date(isoStr);
+    const offset = d.getTimezoneOffset() * 60000;
+    return new Date(d.getTime() - offset).toISOString().slice(0, 16);
+}
+```
+
+---
+
+#### 后端校验错误字段排查方法
+
+后端 Zod 校验失败时，响应体包含字段级错误数组，但原 `apiRequest` 只取 `data.message` 抛出，丢失了具体字段信息。修复后，控制台会输出：
+
+```json
+// [ApiStorage] 校验错误详情:
+[
+  { "field": "deadline", "message": "无效的截止时间" }
+]
+```
+
+配合 `[Debug] updateTask 发送体:` 日志，可快速定位是哪个字段的值格式有问题。
+
+---
+
+#### 预防措施与最佳实践
+
+1. **时间字段格式转换必须在适配器层统一处理**
+   - `fetchTasks`、`createTask`、`updateTask` 三个函数的返回值中，`time` 字段应统一输出 `YYYY-MM-DDTHH:mm` 格式
+   - 避免在多处视图代码中分散处理
+
+2. **`datetime-local` 输入框赋值检查清单**
+
+   ```javascript
+   // 每次将后端 ISO 时间赋值给 datetime-local 前，必须执行 slice(0, 16)
+   isoString.slice(0, 16)  // "2026-03-25T12:00:00.000Z" → "2026-03-25T12:00"
+   ```
+
+3. **API 校验错误应暴露字段详情**
+   - 后端 400 响应体中 `errors` 数组的字段级信息不应被前端吞掉
+   - `apiRequest` 的错误处理必须打印 `data.errors`，便于定位具体失败字段
+
+4. **编辑模态框字段完整性验证**
+   - 打开编辑模态框后，在浏览器控制台验证各输入框的 `.value` 是否有效（非空、非 `Invalid Date`）
+   - 特别是从 API 数据回填的日期/时间字段，格式兼容性需重点验证
+
+5. **新增时间输入场景的测试用例**
+
+   ```javascript
+   // 验证：API 数据回填后，datetime-local 的 value 应为非空
+   const input = document.getElementById('modalTaskTime');
+   console.assert(input.value !== '', '时间字段不应为空');
+   console.assert(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(input.value),
+       'datetime-local 格式不正确: ' + input.value);
+   ```
+
+---
+
 ## 七、开发规范与最佳实践
 
 ### 7.1 数据操作规范
@@ -1246,7 +1451,7 @@ const api = {
 
 ---
 
-*最后更新：2026-03-25（完整重构版 + 跨端同步问题修复补充）*
+*最后更新：2026-03-25（6.13 新增 datetime-local 时间格式兼容性问题）*
 
 ---
 
@@ -1946,6 +2151,7 @@ curl -I http://<你的IP>:8080
 | 写操作后数据不更新 | 在路由写操作后调用 `clearResponseCache(userId)` |
 | 手机端登录后数据空白 | 检查 `nginx.conf` 是否配置 `no-store`，并确认 `index.html` 有 `await Storage.init()` |
 | `docker compose exec db` 失败 | 用 `docker compose ps` 查实际服务名（通常是 `postgres`） |
+| 编辑任务 400 / `请求参数错误` | `app.js` 中对 `task.time` 执行 `.slice(0, 16)`，去除 ISO 时区后缀 |
 
 ### B.8.4 服务器信息
 

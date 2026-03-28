@@ -1,6 +1,6 @@
-# StudyHub 部署命令大全 - 系统学习指南
+# 开发与部署命令手册
 
-> 本文档系统整理了 StudyHub 项目部署过程中使用的所有 Linux/Docker/Git/SSH 命令，按功能分类，便于学习和查阅。
+> 本文档整合了 StudyHub 项目开发与部署过程中常用的命令速查，涵盖 SSH、Linux、Docker、数据库等核心操作。
 
 ---
 
@@ -27,7 +27,7 @@
 ssh -i "私钥路径" 用户名@服务器IP
 
 # 实际示例
-ssh -i "D:\001-cgc\test.pem" root@121.199.45.201
+ssh -i "D:\\001-cgc\\test.pem" root@121.199.45.201
 ```
 
 **参数说明：**
@@ -44,10 +44,10 @@ ssh -i "D:\001-cgc\test.pem" root@121.199.45.201
 ssh -i "私钥路径" root@IP "命令"
 
 # 示例：查看远程目录
-ssh -i "D:\001-cgc\test.pem" root@121.199.45.201 "ls -la /opt/StudyHub"
+ssh -i "D:\\001-cgc\\test.pem" root@121.199.45.201 "ls -la /opt/StudyHub"
 
 # 示例：查看Docker状态
-ssh -i "D:\001-cgc\test.pem" root@121.199.45.201 "docker ps"
+ssh -i "D:\\001-cgc\\test.pem" root@121.199.45.201 "docker ps"
 ```
 
 ### 1.3 执行多条命令
@@ -708,12 +708,12 @@ cp docker-compose.yml docker-compose.yml.bak.$(date +%Y%m%d)
 ### Docker Compose 速查
 ```bash
 up -d       # 启动
- down        # 停止
- ps          # 查看状态
- logs -f     # 跟踪日志
- exec        # 执行命令
- restart     # 重启
- build       # 构建
+down        # 停止
+ps          # 查看状态
+logs -f     # 跟踪日志
+exec        # 执行命令
+restart     # 重启
+build       # 构建
 ```
 
 ### 文本处理速查
