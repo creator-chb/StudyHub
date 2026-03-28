@@ -32,9 +32,22 @@ const app: Express = express();
 // 安全响应头（Phase 6 安全加固）
 app.use(securityHeaders);
 
-// CORS
+// CORS - 支持多个来源
+const allowedOrigins = [
+    config.frontendUrl,
+    'http://121.199.45.201',           // Nginx 反向代理
+    'http://121.199.45.201:8080',      // 前端直接访问
+];
+
 app.use(cors({
-    origin: config.frontendUrl,
+    origin: (origin, callback) => {
+        // 允许没有 origin 的请求（如移动端、Postman）
+        if (!origin) return callback(null, true);
+        if (allowedOrigins.includes(origin)) {
+            return callback(null, true);
+        }
+        return callback(new Error('不允许的跨域来源'), false);
+    },
     credentials: true,
 }));
 
